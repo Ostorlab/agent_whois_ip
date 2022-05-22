@@ -1,10 +1,48 @@
-"""
-    Dummy conftest.py for template_agent.
+"""Pytest fixture for the WhoisIP agent."""
+import pathlib
+import random
 
-    If you don't know what this is for, just leave it empty.
-    Read more about conftest.py under:
-    - https://docs.pytest.org/en/stable/fixture.html
-    - https://docs.pytest.org/en/stable/writing_plugins.html
-"""
+import pytest
+from ostorlab.agent import definitions as agent_definitions
+from ostorlab.agent import message
+from ostorlab.runtimes import definitions as runtime_definitions
 
-# import pytest
+from agent import whois_ip_agent
+
+
+@pytest.fixture
+def scan_message_ipv4():
+    """Creates a dummy message of IPv4 asset.
+    """
+    selector = 'v3.asset.ip.v4'
+    msg_data = {
+        'host': '8.8.8.8',
+        'version': 4
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def scan_message_ipv6():
+    """Creates a dummy message of IPv6 asset.
+    """
+    selector = 'v3.asset.ip.v6'
+    msg_data = {
+        'host': '2a00:1450:4006:80e::200e',
+        'version': 6
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def test_agent():
+    with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
+        definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
+        settings = runtime_definitions.AgentSettings(
+            key='agent/ostorlab/whois_ip',
+            bus_url='NA',
+            bus_exchange_topic='NA',
+            redis_url='redis://redis',
+            args=[],
+            healthcheck_port=random.randint(4000, 5000))
+        return whois_ip_agent.WhoisIPAgent(definition, settings)
