@@ -1,13 +1,85 @@
-# Template to create agents.
+<h1 align="center">Agent Whois IP</h1>
 
-## How to :
-* Create a repository from base_agent template.
-* git remote add template https://github.com/Ostorlab/template_agent.git
+<p align="center">
+<img src="https://img.shields.io/badge/License-Apache_2.0-brightgreen.svg">
+<img src="https://img.shields.io/github/languages/top/ostorlab/agent_whois_ip">
+<img src="https://img.shields.io/github/stars/ostorlab/agent_whois_ip">
+<img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
+</p>
 
+_Agent responsible for retrieving WHOIS information of an IP such as it's AS Number, contact information, registrar, and
+address._
 
-**In case new changes are made to the template**
+---
 
+<p align="center">
+<img src="https://github.com/Ostorlab/agent_whois_ip/blob/main/images/logo.png" alt="agent-whois-ip" />
+</p>
 
-* git fetch template
-* git checkout [branch-to-merge-to]
-* git merge template/main
+This repository is an implementation of [Ostorlab Agent](https://pypi.org/project/ostorlab/)
+for [ipwhois](https://pypi.org/project/ipwhois/).
+
+## Getting Started
+
+To perform your first scan, simply run the following command.
+
+```shell
+ostorlab scan run --install --agent agent/ostorlab/whois_ip ip 8.8.8.8
+```
+
+This command will download and install `agent/ostorlab/whois_ip`.
+For more information, please refer to
+the [Ostorlab Documentation](https://github.com/Ostorlab/ostorlab/blob/main/README.md)
+
+## Usage
+
+Agent Whois can be installed directly from the ostorlab agent store or built from this repository.
+
+### Install directly from ostorlab agent store
+
+ ```shell
+ ostorlab agent install agent/ostorlab/whois_ip
+ ```
+
+You can then run the agent with the following command:
+
+```shell
+ostorlab scan run --agent agent/ostorlab/whois_ip domain-name tesla.com
+```
+
+### Build directly from the repository
+
+1. To build the whois_ip agent you need to have [ostorlab](https://pypi.org/project/ostorlab/) installed in your
+   machine. if you have already installed ostorlab, you can skip this step.
+
+```shell
+pip3 install ostorlab
+```
+
+2. Clone this repository.
+
+```shell
+git clone https://github.com/Ostorlab/agent_whois_ip.git && cd agent_whois_ip
+```
+
+3. Build the agent image using ostorlab cli.
+
+ ```shell
+ ostortlab agent build --file=ostorlab.yaml
+ ```
+
+You can pass the optional flag `--organization` to specify your organisation. The organization is empty by default.
+
+1. Run the agent using on of the following commands:
+    * If you did not specify an organization when building the image:
+     ```shell
+     ostorlab scan run --agent agent//whois_ip domain-name tesla.com
+     ```
+    * If you specified an organization when building the image:
+     ```shell
+     ostorlab scan run --agent agent/[ORGANIZATION]/whois_ip ip 8.8.8.8
+     ```
+
+## License
+
+[Apache-2](./LICENSE)
