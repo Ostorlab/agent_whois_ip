@@ -28,7 +28,7 @@ class WhoisIPAgent(agent.Agent):
             'mask': message.data.get('mask'),
             'version': message.data.get('version'),
             'asn_registry': record.get('asn_registry'),
-            'asn_number': record.get('asn_number'),
+            'asn_number': int(record.get('asn')),
             'asn_country_code': record.get('asn_country_code'),
             'asn_date': record.get('asn_date'),
             'asn_description': record.get('asn_description'),

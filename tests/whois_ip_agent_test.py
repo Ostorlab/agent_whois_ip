@@ -10,6 +10,7 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
     assert agent_mock[0].data == {'asn_country_code': 'US',
                                   'asn_date': '1992-12-01',
                                   'asn_description': 'GOOGLE, US',
+                                  'asn_number': 15169,
                                   'asn_registry': 'arin',
                                   'entities': [{'contact': {'address': '1600 Amphitheatre Parkway\n'
                                                                        'Mountain View\n'
@@ -34,6 +35,7 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
     assert len(agent_mock) == 1
     assert agent_mock[0].selector == 'v3.asset.ip.v6.whois'
     assert agent_mock[0].data == {'asn_country_code': 'IE',
+                                  'asn_number': 15169,
                                   'asn_date': '2009-10-05',
                                   'asn_description': 'GOOGLE, US',
                                   'asn_registry': 'ripencc',
