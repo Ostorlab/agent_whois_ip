@@ -73,7 +73,7 @@ You can pass the optional flag `--organization` to specify your organisation. Th
 1. Run the agent using on of the following commands:
     * If you did not specify an organization when building the image:
      ```shell
-     ostorlab scan run --agent agent//whois_ip domain-name tesla.com
+     ostorlab scan run --agent agent//whois_ip ip 8.8.8.8
      ```
     * If you specified an organization when building the image:
      ```shell
