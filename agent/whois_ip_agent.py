@@ -1,9 +1,12 @@
 """WhoisIP agent implementation"""
 import logging
+from typing import Any, Dict
 from rich import logging as rich_logging
 import ipwhois
 from ostorlab.agent import agent
 from ostorlab.agent import message as m
+
+from agent import ipwhois_data_handler
 
 logging.basicConfig(
     format='%(message)s',
@@ -19,50 +22,45 @@ class WhoisIPAgent(agent.Agent):
     """WhoisIP agent that collect IP registry and AS information using the RDAP protocol."""
 
     def process(self, message: m.Message) -> None:
-        logger.info('processing IP %s', message.data.get('host'))
-        record = ipwhois.IPWhois(message.data.get('host')).lookup_rdap()
-        logger.debug('record\n%s', record)
+        if message.selector == 'v3.asset.domain_name.dns_record':
+            ip_addresses = ipwhois_data_handler.get_ips_from_dns_record_message(message)
 
-        whois_message = {
-            'host': message.data.get('host'),
-            'mask': message.data.get('mask'),
-            'version': message.data.get('version'),
-            'asn_registry': record.get('asn_registry'),
-            'asn_number': int(record.get('asn')),
-            'asn_country_code': record.get('asn_country_code'),
-            'asn_date': record.get('asn_date'),
-            'asn_description': record.get('asn_description'),
-            'network': {
-                'cidr': record.get('network', {}).get('cidr'),
-                'name': record.get('network', {}).get('name'),
-                'handle': record.get('network', {}).get('handle'),
-                'parent_handle': record.get('network', {}).get('parent_handle'),
-            },
-            'entities': [
-                {
-                    'name': e.get('handle'),
-                    'contact': {
-                        'name': e.get('contact', {}).get('name'),
-                        'kind': e.get('contact', {}).get('kind'),
-                        'address': self._get_entity_address(e),
-                    }
-                } for e in record.get('objects', {}).values()
-            ],
+            for ip in ip_addresses:
+                host = str(ip)
+                mask = '/32'
+                version = ip.version
+                logger.info('processing IP %s', host)
+                try:
+                    record = ipwhois.IPWhois(host).lookup_rdap()
+                    logger.debug('record\n%s', record)
+                    whois_message = ipwhois_data_handler.prepare_whois_message_data(host, mask, version, record)
+                    self._emit_whois_message(version, whois_message)
+                except ipwhois.exceptions.IPDefinedError as e:
+                    # casewhere of loopback address
+                    logger.error('%s', e)
 
-        }
+        else:
+            logger.info('processing IP %s', message.data.get('host'))
+            try:
+                record = ipwhois.IPWhois(message.data.get('host')).lookup_rdap()
+                host = message.data.get('host')
+                mask = message.data.get('mask')
+                version = message.data.get('version')
+                whois_message = ipwhois_data_handler.prepare_whois_message_data(host, mask, version, record)
+                self._emit_whois_message(version, whois_message)
+            except ipwhois.exceptions.IPDefinedError as e:
+                # casewhere of loopback address
+                logger.error('%s', e)
 
-        if message.data.get('version') == 4:
+
+    def _emit_whois_message(self, version: int, whois_message: Dict[str, Any]) -> None:
+        """Emit the whois message depending on the type of host address"""
+        if version == 4:
             self.emit('v3.asset.ip.v4.whois', whois_message)
-        elif message.data.get('version') == 6:
+        elif version == 6:
             self.emit('v3.asset.ip.v6.whois', whois_message)
         else:
-            logger.error('unsupported version %s', message.data.get('version'))
-
-    def _get_entity_address(self, e):
-        addresses = e.get('contact', {}).get('address', [])
-        if addresses is None:
-            return None
-        return ' '.join(a.get('value') for a in addresses)
+            logger.error('unsupported version %s', version)
 
 
 if __name__ == '__main__':
