@@ -57,3 +57,19 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
                                               'name': 'IE-GOOGLE-2a00-1450-4000-1',
                                               'parent_handle': '2a00:1450::/29'},
                                   'version': 6}
+
+def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns_resolver_record,
+                                                                test_agent, agent_mock):
+    """Test collecting whois of IP addresses in a dns resolver record message."""
+    test_agent.process(scan_message_dns_resolver_record)
+
+    assert len(agent_mock) == len(scan_message_dns_resolver_record.data['values'])
+    assert agent_mock[0].selector == 'v3.asset.ip.v4.whois'
+
+def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_aaaa_record,
+                                                                test_agent, agent_mock):
+    """Test collecting whois of IP addresses in a dns aaaa record message."""
+    test_agent.process(scan_message_dns_aaaa_record)
+
+    assert len(agent_mock) == len(scan_message_dns_aaaa_record.data['values'])
+    assert agent_mock[0].selector == 'v3.asset.ip.v6.whois'

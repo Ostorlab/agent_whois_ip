@@ -35,6 +35,38 @@ def scan_message_ipv6():
 
 
 @pytest.fixture
+def scan_message_dns_resolver_record():
+    """Creates a dummy message of dns_record asset.
+    """
+    selector = 'v3.asset.domain_name.dns_record'
+    msg_data = {
+        'name': 'ostorlab.co',
+        'record': 'resolver',
+        'values': [
+            '8.8.8.8',
+            '8.8.8.9',
+            '8.8.8.10'
+        ]
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+@pytest.fixture
+def scan_message_dns_aaaa_record():
+    """Creates a dummy message of dns_record asset.
+    """
+    selector = 'v3.asset.domain_name.dns_record'
+    msg_data = {
+        'name': 'ostorlab.co',
+        'record': 'aaaa',
+        'values': [
+            '2a05:d014:275:cb00:ec0d:12e2:df27:aa60',
+            '2a03:b0c0:3:d0::d23:4001'
+        ]
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
 def test_agent():
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
