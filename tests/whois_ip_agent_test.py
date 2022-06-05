@@ -2,7 +2,7 @@
 
 
 def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
-        scan_message_ipv4, test_agent, agent_mock):
+        scan_message_ipv4, test_agent, agent_mock, agent_persist_mock):
     """Test collecting whois of an IPv4 address."""
     test_agent.process(scan_message_ipv4)
     assert len(agent_mock) == 1
@@ -29,7 +29,7 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
 
 
 def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
-        scan_message_ipv6, test_agent, agent_mock):
+        scan_message_ipv6, test_agent, agent_mock, agent_persist_mock):
     """Test collecting whois of an IPv6 address."""
     test_agent.process(scan_message_ipv6)
     assert len(agent_mock) == 1
@@ -59,7 +59,8 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
                                   'version': 6}
 
 def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns_resolver_record,
-                                                                test_agent, agent_mock):
+                                                                test_agent, agent_mock,
+                                                                agent_persist_mock):
     """Test collecting whois of IP addresses in a dns resolver record message."""
     test_agent.process(scan_message_dns_resolver_record)
 
@@ -67,7 +68,8 @@ def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns
     assert agent_mock[0].selector == 'v3.asset.ip.v4.whois'
 
 def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_aaaa_record,
-                                                                test_agent, agent_mock):
+                                                              test_agent, agent_mock,
+                                                              agent_persist_mock):
     """Test collecting whois of IP addresses in a dns aaaa record message."""
     test_agent.process(scan_message_dns_aaaa_record)
 
