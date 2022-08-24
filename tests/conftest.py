@@ -29,7 +29,7 @@ def scan_message_ipv4_mask():
     msg_data = {
         'host': '8.8.8.0',
         'version': 4,
-        'mask': '28'
+        'mask': '30'
     }
     return message.Message.from_data(selector, data=msg_data)
 
