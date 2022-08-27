@@ -78,7 +78,7 @@ def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_a
 
 
 def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
-        scan_message_ipv4_mask, test_agent, agent_mock, agent_persist_mock):
+        scan_message_ipv4_mask, scan_message_ipv4_mask_2, test_agent, agent_mock, agent_persist_mock):
     """Test collecting whois of an IPv4 address."""
     test_agent.process(scan_message_ipv4_mask)
     assert len(agent_mock) == 2
@@ -103,3 +103,5 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
                                               'name': 'LVLT-GOGL-8-8-8',
                                               'parent_handle': 'NET-8-0-0-0-1'},
                                   'version': 4}
+    test_agent.process(scan_message_ipv4_mask_2)
+    assert len(agent_mock) == 2
