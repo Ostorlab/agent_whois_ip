@@ -59,7 +59,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
 
             if mask is not None:
                 addresses = ipaddress.ip_network(f'{host}/{mask}')
-                if not self.add_ip_network('agent_whois_ip_asset', addresses, lambda net: f'X_{net}_Y'):
+                if not self.add_ip_network('agent_whois_ip_asset', addresses):
                     logger.info('target %s was processed before, exiting', addresses)
                     return
             else:
