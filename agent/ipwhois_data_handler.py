@@ -13,11 +13,6 @@ def prepare_whois_message_data(host: str, mask: str, version: int, record) -> Di
         'host': host,
         'mask': mask,
         'version': version,
-        'asn_registry': record.get('asn_registry'),
-        'asn_number': int(record.get('asn')),
-        'asn_country_code': record.get('asn_country_code'),
-        'asn_date': record.get('asn_date'),
-        'asn_description': record.get('asn_description'),
         'network': {
             'cidr': record.get('network', {}).get('cidr'),
             'name': record.get('network', {}).get('name'),
@@ -35,6 +30,17 @@ def prepare_whois_message_data(host: str, mask: str, version: int, record) -> Di
             } for e in record.get('objects', {}).values()
         ],
     }
+
+    if record.get('asn_registry') is not None:
+        whois_message['asn_registry'] = record.get('asn_registry')
+    if record.get('asn') is not None:
+        whois_message['asn_number'] = int(record.get('asn'))
+    if record.get('asn_country_code') is not None:
+        whois_message['asn_country_code'] = record.get('asn_country_code')
+    if record.get('asn_date') is not None:
+        whois_message['asn_date'] = record.get('asn_date')
+    if record.get('asn_description') is not None:
+        whois_message['asn_description'] = record.get('asn_description')
     return whois_message
 
 def _get_entity_address(e):
