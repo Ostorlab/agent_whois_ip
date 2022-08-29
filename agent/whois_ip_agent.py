@@ -1,5 +1,6 @@
 """WhoisIP agent implementation"""
 import logging
+import ipaddress
 from typing import Any, Dict
 from rich import logging as rich_logging
 import ipwhois
@@ -54,19 +55,29 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
 
         else:
             host = message.data.get('host')
-            if not self.set_add('agent_whois_ip_asset', host):
-                logger.info('target %s was processed before, exiting', host)
-                return
-            try:
-                logger.info('processing IP %s', host)
-                record = ipwhois.IPWhois(host).lookup_rdap()
-                mask = message.data.get('mask')
-                version = message.data.get('version')
-                whois_message = ipwhois_data_handler.prepare_whois_message_data(host, mask, version, record)
-                self._emit_whois_message(version, whois_message)
-            except ipwhois.exceptions.IPDefinedError as e:
-                # casewhere of loopback address
-                logger.error('%s', e)
+            mask = message.data.get('mask')
+
+            if mask is not None:
+                addresses = ipaddress.ip_network(f'{host}/{mask}')
+                if not self.add_ip_network('agent_whois_ip_asset', addresses):
+                    logger.info('target %s was processed before, exiting', addresses)
+                    return
+            else:
+                if not self.set_add('agent_whois_ip_asset', host):
+                    logger.info('target %s was processed before, exiting', host)
+                    return
+                addresses = ipaddress.ip_network(host)
+
+            for address in addresses.hosts():
+                try:
+                    logger.info('processing IP %s', address)
+                    record = ipwhois.IPWhois(str(address)).lookup_rdap()
+                    version = message.data.get('version')
+                    whois_message = ipwhois_data_handler.prepare_whois_message_data(str(address), mask, version, record)
+                    self._emit_whois_message(version, whois_message)
+                except ipwhois.exceptions.IPDefinedError as e:
+                    # casewhere of loopback address
+                    logger.error('%s', e)
 
 
     def _emit_whois_message(self, version: int, whois_message: Dict[str, Any]) -> None:

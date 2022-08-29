@@ -21,6 +21,31 @@ def scan_message_ipv4():
     }
     return message.Message.from_data(selector, data=msg_data)
 
+@pytest.fixture
+def scan_message_ipv4_mask():
+    """Creates a dummy message of IPv4 asset.
+    """
+    selector = 'v3.asset.ip.v4'
+    msg_data = {
+        'host': '8.8.8.0',
+        'version': 4,
+        'mask': '30'
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def scan_message_ipv4_mask_2():
+    """Creates a dummy message of IPv4 asset.
+    """
+    selector = 'v3.asset.ip.v4'
+    msg_data = {
+        'host': '8.8.8.0',
+        'version': 4,
+        'mask': '31'
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
 
 @pytest.fixture
 def scan_message_ipv6():

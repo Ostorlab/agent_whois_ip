@@ -75,3 +75,33 @@ def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_a
 
     assert len(agent_mock) == len(scan_message_dns_aaaa_record.data['values'])
     assert agent_mock[0].selector == 'v3.asset.ip.v6.whois'
+
+
+def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
+        scan_message_ipv4_mask, scan_message_ipv4_mask_2, test_agent, agent_mock, agent_persist_mock):
+    """Test collecting whois of an IPv4 address."""
+    test_agent.process(scan_message_ipv4_mask)
+    assert len(agent_mock) == 2
+    assert agent_mock[0].selector == 'v3.asset.ip.v4.whois'
+    assert agent_mock[0].data == {'asn_country_code': 'US',
+                                  'asn_date': '1992-12-01',
+                                  'asn_description': 'GOOGLE, US',
+                                  'asn_number': 15169,
+                                  'asn_registry': 'arin',
+                                  'entities': [{'contact': {'address': '1600 Amphitheatre Parkway\n'
+                                                                       'Mountain View\n'
+                                                                       'CA\n'
+                                                                       '94043\n'
+                                                                       'United States',
+                                                            'kind': 'org',
+                                                            'name': 'Google LLC'},
+                                                'name': 'GOGL'}],
+                                  'host': '8.8.8.1',
+                                  'mask': '30',
+                                  'network': {'cidr': '8.8.8.0/24',
+                                              'handle': 'NET-8-8-8-0-1',
+                                              'name': 'LVLT-GOGL-8-8-8',
+                                              'parent_handle': 'NET-8-0-0-0-1'},
+                                  'version': 4}
+    test_agent.process(scan_message_ipv4_mask_2)
+    assert len(agent_mock) == 2
