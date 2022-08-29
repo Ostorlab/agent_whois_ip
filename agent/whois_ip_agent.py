@@ -41,7 +41,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 if not self.set_add('agent_whois_ip_asset', host):
                     logger.info('target %s was processed before, exiting', host)
                     return
-                mask = '/32'
+                mask = '32'
                 version = ip.version
                 logger.info('processing IP %s', host)
                 try:
