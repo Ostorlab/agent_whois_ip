@@ -33,7 +33,7 @@ def prepare_whois_message_data(host: str, mask: str, version: int, record) -> Di
 
     if record.get('asn_registry') is not None:
         whois_message['asn_registry'] = record.get('asn_registry')
-    if record.get('asn') is not None and record.get('asn') != 'NA':
+    if record.get('asn') is not None and record.get('asn').isnumeric() is True:
         whois_message['asn_number'] = int(record.get('asn'))
     if record.get('asn_country_code') is not None:
         whois_message['asn_country_code'] = record.get('asn_country_code')
