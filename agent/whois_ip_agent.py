@@ -78,7 +78,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 except ipwhois.exceptions.IPDefinedError as e:
                     # casewhere of loopback address
                     logger.error('%s', e)
-                except (ipwhois.exceptions.ASNRegistryError) as e:
+                except ipwhois.exceptions.ASNRegistryError as e:
                     logger.error('%s', e)
 
 
