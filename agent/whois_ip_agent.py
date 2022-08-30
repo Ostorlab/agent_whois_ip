@@ -41,8 +41,12 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 if not self.set_add('agent_whois_ip_asset', host):
                     logger.info('target %s was processed before, exiting', host)
                     return
-                mask = '/32'
+
+                mask = '32'
                 version = ip.version
+                if version == 6:
+                    mask = '128'
+
                 logger.info('processing IP %s', host)
                 try:
                     record = ipwhois.IPWhois(host).lookup_rdap()
@@ -50,12 +54,15 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(host, mask, version, record)
                     self._emit_whois_message(version, whois_message)
                 except ipwhois.exceptions.IPDefinedError as e:
-                    # casewhere of loopback address
+                    # case where of loopback address
                     logger.error('%s', e)
 
         else:
             host = message.data.get('host')
-            mask = message.data.get('mask')
+            mask = message.data.get('mask', '32')
+
+            if message.data.get('version') == 6:
+                mask = '128'
 
             if mask is not None:
                 addresses = ipaddress.ip_network(f'{host}/{mask}')
@@ -76,7 +83,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(str(address), mask, version, record)
                     self._emit_whois_message(version, whois_message)
                 except ipwhois.exceptions.IPDefinedError as e:
-                    # casewhere of loopback address
+                    # case where of loopback address
                     logger.error('%s', e)
 
 
