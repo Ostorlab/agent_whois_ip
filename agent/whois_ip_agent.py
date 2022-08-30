@@ -58,7 +58,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             mask = message.data.get('mask')
 
             if mask is not None:
-                addresses = ipaddress.ip_network(f'{host}/{mask}')
+                addresses = ipaddress.ip_network(f'{host}/{mask}', strict=False)
                 if not self.add_ip_network('agent_whois_ip_asset', addresses):
                     logger.info('target %s was processed before, exiting', addresses)
                     return
