@@ -21,7 +21,7 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
                                                             'name': 'Google LLC'},
                                                 'name': 'GOGL'}],
                                   'host': '8.8.8.8',
-                                  'mask':'32',
+                                  'mask': '32',
                                   'network': {'cidr': '8.8.8.0/24',
                                               'handle': 'NET-8-8-8-0-1',
                                               'name': 'LVLT-GOGL-8-8-8',
@@ -60,6 +60,7 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
                                               'parent_handle': '2a00:1450::/29'},
                                   'version': 6}
 
+
 def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns_resolver_record,
                                                                 test_agent, agent_mock,
                                                                 agent_persist_mock):
@@ -68,6 +69,7 @@ def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns
 
     assert len(agent_mock) == len(scan_message_dns_resolver_record.data['values'])
     assert agent_mock[0].selector == 'v3.asset.ip.v4.whois'
+
 
 def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_aaaa_record,
                                                               test_agent, agent_mock,
