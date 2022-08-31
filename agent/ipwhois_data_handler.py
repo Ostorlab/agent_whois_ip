@@ -62,3 +62,4 @@ def get_ips_from_dns_record_message(message: m.Message) -> Union[ipaddress.IPv4A
         except ipaddress.AddressValueError as e:
             logger.error('%s', e)
     return ip_addresses
+

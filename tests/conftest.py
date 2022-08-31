@@ -106,3 +106,4 @@ def test_agent():
             args=[],
             healthcheck_port=random.randint(4000, 5000))
         return whois_ip_agent.WhoisIPAgent(definition, settings)
+

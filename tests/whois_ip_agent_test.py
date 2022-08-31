@@ -109,3 +109,4 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
                                   'version': 4}
     test_agent.process(scan_message_ipv4_mask_2)
     assert len(agent_mock) == 2
+
