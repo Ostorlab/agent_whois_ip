@@ -80,7 +80,6 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             logger.info('target %s was processed before, exiting', network)
             return
 
-
     def _emit_whois_message(self, whois_message: Dict[str, Any]) -> None:
         """Emit the whois message depending on the type of host address"""
         if (version := whois_message.get('version')) is not None:
