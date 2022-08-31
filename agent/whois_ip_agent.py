@@ -52,8 +52,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(ip, record)
                     self._emit_whois_message(whois_message)
                 except ipwhois.exceptions.IPDefinedError as e:
-                    # case where of loopback address
-                    logger.error('%s', e)
+                    # Case where of the loopback address.
+                    logger.warning('Some data not found when agent_whois_ip_asset try to process IP ')
             else:
                 logger.info('target %s was processed before, exiting', host)
                 return
@@ -71,11 +71,9 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     record = ipwhois.IPWhois(str(address)).lookup_rdap()
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(address, record)
                     self._emit_whois_message(whois_message)
-                except ipwhois.exceptions.IPDefinedError as e:
-                    # case where of loopback address
-                    logger.error('%s', e)
-                except ipwhois.exceptions.ASNRegistryError as e:
-                    logger.error('%s', e)
+                except (ipwhois.exceptions.IPDefinedError, ipwhois.exceptions.ASNRegistryError) as e:
+                    # Case where of the loopback address.
+                    logger.warning('Some data not found when agent_whois_ip_asset try to process IP ')
         else:
             logger.info('target %s was processed before, exiting', network)
             return
@@ -96,4 +94,3 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
 if __name__ == '__main__':
     logger.info('starting agent ...')
     WhoisIPAgent.main()
-

@@ -8,7 +8,7 @@ from ostorlab.agent import message as m
 logger = logging.getLogger(__name__)
 
 
-def prepare_whois_message_data(ip, record) -> Dict[str, Any]:
+def prepare_whois_message_data(ip: ipaddress.IPv4Address | ipaddress.IPv6Address, record: Dict) -> Dict[str, Any]:
     """Prepares data of the whois IP message."""
 
     whois_message = {
