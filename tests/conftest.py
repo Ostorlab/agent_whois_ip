@@ -17,9 +17,11 @@ def scan_message_ipv4():
     selector = 'v3.asset.ip.v4'
     msg_data = {
         'host': '8.8.8.8',
+        'mask': '32',
         'version': 4
     }
     return message.Message.from_data(selector, data=msg_data)
+
 
 @pytest.fixture
 def scan_message_ipv4_mask():
@@ -74,6 +76,7 @@ def scan_message_dns_resolver_record():
         ]
     }
     return message.Message.from_data(selector, data=msg_data)
+
 
 @pytest.fixture
 def scan_message_dns_aaaa_record():

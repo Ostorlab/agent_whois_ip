@@ -7,12 +7,14 @@ from ostorlab.agent import message as m
 
 logger = logging.getLogger(__name__)
 
-def prepare_whois_message_data(host: str, mask: str, version: int, record) -> Dict[str, Any]:
+
+def prepare_whois_message_data(ip, record) -> Dict[str, Any]:
     """Prepares data of the whois IP message."""
+
     whois_message = {
-        'host': host,
-        'mask': mask,
-        'version': version,
+        'host': str(ip),
+        'mask': str(ip.max_prefixlen),
+        'version': ip.version,
         'network': {
             'cidr': record.get('network', {}).get('cidr'),
             'name': record.get('network', {}).get('name'),
@@ -33,7 +35,7 @@ def prepare_whois_message_data(host: str, mask: str, version: int, record) -> Di
 
     if record.get('asn_registry') is not None:
         whois_message['asn_registry'] = record.get('asn_registry')
-    if record.get('asn') is not None:
+    if record.get('asn') is not None and record.get('asn').isnumeric() is True:
         whois_message['asn_number'] = int(record.get('asn'))
     if record.get('asn_country_code') is not None:
         whois_message['asn_country_code'] = record.get('asn_country_code')
@@ -43,11 +45,13 @@ def prepare_whois_message_data(host: str, mask: str, version: int, record) -> Di
         whois_message['asn_description'] = record.get('asn_description')
     return whois_message
 
+
 def _get_entity_address(e):
     addresses = e.get('contact', {}).get('address', [])
     if addresses is None:
         return None
     return ' '.join(a.get('value') for a in addresses)
+
 
 def get_ips_from_dns_record_message(message: m.Message) -> Union[ipaddress.IPv4Address, ipaddress.IPv6Address]:
     ip_addresses = []
