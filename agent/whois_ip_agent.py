@@ -51,7 +51,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     logger.debug('record\n%s', record)
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(ip, record)
                     self._emit_whois_message(whois_message)
-                except ipwhois.exceptions.IPDefinedError as e:
+                except ipwhois.exceptions.IPDefinedError:
                     # Case where of the loopback address.
                     logger.warning('Some data not found when agent_whois_ip_asset try to process IP ')
             else:
@@ -71,7 +71,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     record = ipwhois.IPWhois(str(address)).lookup_rdap()
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(address, record)
                     self._emit_whois_message(whois_message)
-                except (ipwhois.exceptions.IPDefinedError, ipwhois.exceptions.ASNRegistryError) as e:
+                except (ipwhois.exceptions.IPDefinedError, ipwhois.exceptions.ASNRegistryError):
                     # Case where of the loopback address.
                     logger.warning('Some data not found when agent_whois_ip_asset try to process IP ')
         else:
