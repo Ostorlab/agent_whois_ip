@@ -5,7 +5,7 @@ from typing import Any, Dict
 from rich import logging as rich_logging
 import ipwhois
 from ostorlab.agent import agent
-from ostorlab.agent import message as m
+from ostorlab.agent.message import message as m
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent.mixins import agent_persist_mixin as persist_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
