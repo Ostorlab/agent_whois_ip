@@ -3,7 +3,7 @@ from typing import Any, Dict, Union
 import logging
 import ipaddress
 
-from ostorlab.agent import message as m
+from ostorlab.agent.message import message as m
 
 logger = logging.getLogger(__name__)
 
