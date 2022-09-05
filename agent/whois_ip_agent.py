@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict
 
 import ipwhois
+from ipwhois import exceptions
 from ostorlab.agent import agent
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent.message import message as m
@@ -67,7 +68,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
     def _process_ip(self, message: m.Message) -> None:
         host = message.data.get('host')
         mask = message.data.get('mask')
-        network = ipaddress.ip_network(f'{host}/{mask}') if mask is not None else ipaddress.ip_network(f'{host}')
+        network = ipaddress.ip_network(f'{host}/{mask}',
+                                       strict=False) if mask is not None else ipaddress.ip_network(f'{host}')
 
         if self.add_ip_network('agent_whois_ip_asset', network):
             for address in network.hosts():
@@ -78,7 +80,9 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     self._emit_whois_message(whois_message)
                 except (ipwhois.exceptions.IPDefinedError, ipwhois.exceptions.ASNRegistryError):
                     # Case where of the loopback address.
-                    logger.warning('Some data not found when agent_whois_ip_asset try to process IP ')
+                    logger.warning('Some data not found when agent_whois_ip_asset try to process IP %s', address)
+                except exceptions.HTTPRateLimitError:
+                    logger.warning('Rate limit error for IP %s', address)
         else:
             logger.info('target %s was processed before, exiting', network)
             return
