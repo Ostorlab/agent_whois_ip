@@ -1,15 +1,16 @@
-"""WhoisIP agent implementation"""
-import logging
+"""WhoisIP agent implementation that processes both DNS records and IP assets."""
 import ipaddress
+import logging
 from typing import Any, Dict
-from rich import logging as rich_logging
-import ipwhois
 
+import ipwhois
 from ostorlab.agent import agent
-from ostorlab.agent.message import message as m
 from ostorlab.agent import definitions as agent_definitions
+from ostorlab.agent.message import message as m
 from ostorlab.agent.mixins import agent_persist_mixin as persist_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
+from rich import logging as rich_logging
+
 from agent import ipwhois_data_handler
 
 logging.basicConfig(
@@ -31,29 +32,34 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
 
     def process(self, message: m.Message) -> None:
-        logger.info('Processing message of selector : %s', message.selector)
+        """Process DNS records and IP asset to emit whois record.
 
-        if message.selector == 'v3.asset.domain_name.dns_record':
+        Args:
+            message: DNS record or IP asset message.
+
+        Returns:
+            None
+        """
+        logger.debug('processing message of selector %s', message.selector)
+
+        if message.selector.startswith('v3.asset.domain_name.dns_record'):
             return self._process_dns_record(message)
         else:
             return self._process_ip(message)
 
     def _process_dns_record(self, message: m.Message) -> None:
-
         ip_addresses = ipwhois_data_handler.get_ips_from_dns_record_message(message)
-
         for ip in ip_addresses:
             host = str(ip)
             if self.set_add('agent_whois_ip_asset', host):
-                logger.info('processing IP %s', host)
+                logger.info('processing ip %s', host)
                 try:
                     record = ipwhois.IPWhois(host).lookup_rdap()
-                    logger.debug('record\n%s', record)
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(ip, record)
                     self._emit_whois_message(whois_message)
                 except ipwhois.exceptions.IPDefinedError:
                     # Case where of the loopback address.
-                    logger.warning('Some data not found when agent_whois_ip_asset try to process IP ')
+                    logger.warning('some data not found when agent_whois_ip_asset try to process IP ')
             else:
                 logger.info('target %s was processed before, exiting', host)
                 return
@@ -84,7 +90,6 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 self.emit('v3.asset.ip.v4.whois', whois_message)
             elif version == 6:
                 self.emit('v3.asset.ip.v6.whois', whois_message)
-
 
 
 if __name__ == '__main__':

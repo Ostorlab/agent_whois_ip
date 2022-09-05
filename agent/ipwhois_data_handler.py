@@ -8,9 +8,19 @@ from ostorlab.agent.message import message as m
 logger = logging.getLogger(__name__)
 
 
-def prepare_whois_message_data(ip: ipaddress.IPv4Address | ipaddress.IPv6Address, record: Dict[str, Any]) -> Dict[
-    str, Any]:
-    """Prepares data of the whois IP message."""
+def prepare_whois_message_data(
+        ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
+        record: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Prepares data of the whois IP message.
+
+    Args:
+        ip: IP address target of the whois data.
+        record: Whois data records.
+
+    Returns:
+        Dict whois message.
+    """
 
     whois_message: Dict[str, Any] = {
         'host': str(ip),
@@ -56,6 +66,14 @@ def _get_entity_address(e: Dict[str, Any]) -> Optional[str]:
 
 
 def get_ips_from_dns_record_message(message: m.Message) -> List[Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
+    """Extract IP address from DNS record messages.
+
+    Args:
+        message: DNS Record Message.
+
+    Returns:
+        List of IP addresses.
+    """
     ip_addresses = []
     if message.data['record'] in ('resolver', 'a', 'aaaa'):
         try:
