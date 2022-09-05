@@ -11,7 +11,7 @@ from agent import whois_ip_agent
 
 
 @pytest.fixture
-def scan_message_ipv4():
+def scan_message_ipv4() -> message.Message:
     """Creates a dummy message of IPv4 asset.
     """
     selector = 'v3.asset.ip.v4'
@@ -22,7 +22,7 @@ def scan_message_ipv4():
     return message.Message.from_data(selector, data=msg_data)
 
 @pytest.fixture
-def scan_message_ipv4_mask():
+def scan_message_ipv4_mask() -> message.Message:
     """Creates a dummy message of IPv4 asset.
     """
     selector = 'v3.asset.ip.v4'
@@ -35,7 +35,7 @@ def scan_message_ipv4_mask():
 
 
 @pytest.fixture
-def scan_message_ipv4_mask_2():
+def scan_message_ipv4_mask_2() -> message.Message:
     """Creates a dummy message of IPv4 asset.
     """
     selector = 'v3.asset.ip.v4'
@@ -48,7 +48,7 @@ def scan_message_ipv4_mask_2():
 
 
 @pytest.fixture
-def scan_message_ipv6():
+def scan_message_ipv6() -> message.Message:
     """Creates a dummy message of IPv6 asset.
     """
     selector = 'v3.asset.ip.v6'
@@ -60,7 +60,7 @@ def scan_message_ipv6():
 
 
 @pytest.fixture
-def scan_message_dns_resolver_record():
+def scan_message_dns_resolver_record() -> message.Message:
     """Creates a dummy message of dns_record asset.
     """
     selector = 'v3.asset.domain_name.dns_record'
@@ -76,7 +76,7 @@ def scan_message_dns_resolver_record():
     return message.Message.from_data(selector, data=msg_data)
 
 @pytest.fixture
-def scan_message_dns_aaaa_record():
+def scan_message_dns_aaaa_record() -> message.Message:
     """Creates a dummy message of dns_record asset.
     """
     selector = 'v3.asset.domain_name.dns_record'
@@ -92,7 +92,7 @@ def scan_message_dns_aaaa_record():
 
 
 @pytest.fixture
-def test_agent():
+def test_agent() -> whois_ip_agent.WhoisIPAgent:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         settings = runtime_definitions.AgentSettings(

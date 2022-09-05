@@ -1,19 +1,31 @@
-"""Helper module for preparing the whosis IP messages."""
-from typing import Any, Dict, Union, List
-import logging
+"""Helper module for preparing the whois IP messages."""
 import ipaddress
+import logging
+from typing import Any, Dict, Union, Optional, List
 
 from ostorlab.agent.message import message as m
 
 logger = logging.getLogger(__name__)
 
 
-def prepare_whois_message_data(host: str, mask: str, version: int, record: Any) -> Dict[str, Any]:
-    """Prepares data of the whois IP message."""
-    whois_message = {
-        'host': host,
-        'mask': mask,
-        'version': version,
+def prepare_whois_message_data(
+        ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
+        record: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Prepares data of the whois IP message.
+
+    Args:
+        ip: IP address target of the whois data.
+        record: Whois data records.
+
+    Returns:
+        Dict whois message.
+    """
+
+    whois_message: Dict[str, Any] = {
+        'host': str(ip),
+        'mask': str(ip.max_prefixlen),
+        'version': ip.version,
         'network': {
             'cidr': record.get('network', {}).get('cidr'),
             'name': record.get('network', {}).get('name'),
@@ -34,8 +46,9 @@ def prepare_whois_message_data(host: str, mask: str, version: int, record: Any) 
 
     if record.get('asn_registry') is not None:
         whois_message['asn_registry'] = record.get('asn_registry')
-    if record.get('asn') is not None and record.get('asn').isnumeric() is True:
-        whois_message['asn_number'] = int(record.get('asn'))
+    if record.get('asn') is not None and record.get('asn', '').isnumeric() is True:
+        asn: str = record.get('asn', '')
+        whois_message['asn_number'] = int(asn)
     if record.get('asn_country_code') is not None:
         whois_message['asn_country_code'] = record.get('asn_country_code')
     if record.get('asn_date') is not None:
@@ -45,7 +58,7 @@ def prepare_whois_message_data(host: str, mask: str, version: int, record: Any) 
     return whois_message
 
 
-def _get_entity_address(e: Any) -> Union[str, None]:
+def _get_entity_address(e: Dict[str, Any]) -> Optional[str]:
     addresses = e.get('contact', {}).get('address', [])
     if addresses is None:
         return None
@@ -53,6 +66,14 @@ def _get_entity_address(e: Any) -> Union[str, None]:
 
 
 def get_ips_from_dns_record_message(message: m.Message) -> List[Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
+    """Extract IP address from DNS record messages.
+
+    Args:
+        message: DNS Record Message.
+
+    Returns:
+        List of IP addresses.
+    """
     ip_addresses = []
     if message.data['record'] in ('resolver', 'a', 'aaaa'):
         try:

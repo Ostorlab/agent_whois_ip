@@ -1,8 +1,14 @@
 """Unittests for WhoisIP agent."""
+from typing import List, Dict
+
+from ostorlab.agent.message import message
+
+from agent import whois_ip_agent
 
 
 def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
-        scan_message_ipv4, test_agent, agent_mock, agent_persist_mock):
+        scan_message_ipv4: message.Message, test_agent: whois_ip_agent.WhoisIPAgent,
+        agent_mock: List[message.Message], agent_persist_mock: Dict[str | bytes, str | bytes]) -> None:
     """Test collecting whois of an IPv4 address."""
     test_agent.process(scan_message_ipv4)
     assert len(agent_mock) == 1
@@ -21,6 +27,7 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
                                                             'name': 'Google LLC'},
                                                 'name': 'GOGL'}],
                                   'host': '8.8.8.8',
+                                  'mask': '32',
                                   'network': {'cidr': '8.8.8.0/24',
                                               'handle': 'NET-8-8-8-0-1',
                                               'name': 'LVLT-GOGL-8-8-8',
@@ -29,7 +36,8 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
 
 
 def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
-        scan_message_ipv6, test_agent, agent_mock, agent_persist_mock):
+        scan_message_ipv6: message.Message, test_agent: whois_ip_agent.WhoisIPAgent,
+        agent_mock: List[message.Message], agent_persist_mock: Dict[str | bytes, str | bytes]) -> None:
     """Test collecting whois of an IPv6 address."""
     test_agent.process(scan_message_ipv6)
     assert len(agent_mock) == 1
@@ -52,24 +60,31 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
                                                             'name': 'Abuse-C Role'},
                                                 'name': 'AR15518-RIPE'}],
                                   'host': '2a00:1450:4006:80e::200e',
+                                  'mask': '128',
                                   'network': {'cidr': '2a00:1450:4000::/37',
                                               'handle': '2a00:1450:4000::/37',
                                               'name': 'IE-GOOGLE-2a00-1450-4000-1',
                                               'parent_handle': '2a00:1450::/29'},
                                   'version': 6}
 
-def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns_resolver_record,
-                                                                test_agent, agent_mock,
-                                                                agent_persist_mock):
+
+def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns_resolver_record: message.Message,
+                                                                test_agent: whois_ip_agent.WhoisIPAgent,
+                                                                agent_mock: List[message.Message],
+                                                                agent_persist_mock: Dict[
+                                                                    str | bytes, str | bytes]) -> None:
     """Test collecting whois of IP addresses in a dns resolver record message."""
     test_agent.process(scan_message_dns_resolver_record)
 
     assert len(agent_mock) == len(scan_message_dns_resolver_record.data['values'])
     assert agent_mock[0].selector == 'v3.asset.ip.v4.whois'
 
-def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_aaaa_record,
-                                                              test_agent, agent_mock,
-                                                              agent_persist_mock):
+
+def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_aaaa_record: message.Message,
+                                                              test_agent: whois_ip_agent.WhoisIPAgent,
+                                                              agent_mock: List[message.Message],
+                                                              agent_persist_mock: Dict[
+                                                                  str | bytes, str | bytes]) -> None:
     """Test collecting whois of IP addresses in a dns aaaa record message."""
     test_agent.process(scan_message_dns_aaaa_record)
 
@@ -78,7 +93,10 @@ def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_a
 
 
 def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
-        scan_message_ipv4_mask, scan_message_ipv4_mask_2, test_agent, agent_mock, agent_persist_mock):
+        scan_message_ipv4_mask: message.Message, scan_message_ipv4_mask_2: message.Message,
+        test_agent: whois_ip_agent.WhoisIPAgent,
+        agent_mock: List[message.Message],
+        agent_persist_mock: Dict[str | bytes, str | bytes]) -> None:
     """Test collecting whois of an IPv4 address."""
     test_agent.process(scan_message_ipv4_mask)
     assert len(agent_mock) == 2
@@ -97,7 +115,7 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
                                                             'name': 'Google LLC'},
                                                 'name': 'GOGL'}],
                                   'host': '8.8.8.1',
-                                  'mask': '30',
+                                  'mask': '32',
                                   'network': {'cidr': '8.8.8.0/24',
                                               'handle': 'NET-8-8-8-0-1',
                                               'name': 'LVLT-GOGL-8-8-8',
