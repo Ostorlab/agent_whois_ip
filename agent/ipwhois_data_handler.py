@@ -1,14 +1,15 @@
 """Helper module for preparing the whois IP messages."""
-from typing import Any, Dict, Union, Optional, List
-import logging
 import ipaddress
+import logging
+from typing import Any, Dict, Union, Optional, List
 
 from ostorlab.agent.message import message as m
 
 logger = logging.getLogger(__name__)
 
 
-def prepare_whois_message_data(ip: ipaddress.IPv4Address | ipaddress.IPv6Address, record: Dict[str, Any]) -> Dict[str, Any]:
+def prepare_whois_message_data(ip: ipaddress.IPv4Address | ipaddress.IPv6Address, record: Dict[str, Any]) -> Dict[
+    str, Any]:
     """Prepares data of the whois IP message."""
 
     whois_message: Dict[str, Any] = {
@@ -63,4 +64,3 @@ def get_ips_from_dns_record_message(message: m.Message) -> List[Union[ipaddress.
         except ipaddress.AddressValueError as e:
             logger.error('%s', e)
     return ip_addresses
-
