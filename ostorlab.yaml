@@ -1,6 +1,6 @@
 kind: Agent
 name: whois_ip
-version: 0.3.5
+version: 0.3.6
 image: images/cover.png
 description: |
   This repository is an implementation of [Ostorlab Agent](https://pypi.org/project/ostorlab/)
