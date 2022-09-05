@@ -35,7 +35,7 @@ def scan_message_ipv4_mask() -> message.Message:
 
 
 @pytest.fixture
-def scan_message_ipv4_mask_2():
+def scan_message_ipv4_mask_2() -> message.Message:
     """Creates a dummy message of IPv4 asset.
     """
     selector = 'v3.asset.ip.v4'

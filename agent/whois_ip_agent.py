@@ -85,10 +85,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 self.emit('v3.asset.ip.v4.whois', whois_message)
             elif version == 6:
                 self.emit('v3.asset.ip.v6.whois', whois_message)
-            else:
-                logger.error('unsupported version %s', version)
-        else:
-            logger.error('version is none , in whois message')
+
 
 
 if __name__ == '__main__':
