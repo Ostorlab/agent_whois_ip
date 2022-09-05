@@ -68,7 +68,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
     def _process_ip(self, message: m.Message) -> None:
         host = message.data.get('host')
         mask = message.data.get('mask')
-        network = ipaddress.ip_network(f'{host}/{mask}', strict=False) if mask is not None else ipaddress.ip_network(f'{host}')
+        network = ipaddress.ip_network(f'{host}/{mask}',
+                                       strict=False) if mask is not None else ipaddress.ip_network(f'{host}')
 
         if self.add_ip_network('agent_whois_ip_asset', network):
             for address in network.hosts():
