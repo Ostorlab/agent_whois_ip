@@ -71,7 +71,8 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
 def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns_resolver_record: message.Message,
                                                                 test_agent: whois_ip_agent.WhoisIPAgent,
                                                                 agent_mock: List[message.Message],
-                                                                agent_persist_mock: Dict[str | bytes, str | bytes]) -> None:
+                                                                agent_persist_mock: Dict[
+                                                                    str | bytes, str | bytes]) -> None:
     """Test collecting whois of IP addresses in a dns resolver record message."""
     test_agent.process(scan_message_dns_resolver_record)
 
@@ -82,7 +83,8 @@ def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(scan_message_dns
 def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(scan_message_dns_aaaa_record: message.Message,
                                                               test_agent: whois_ip_agent.WhoisIPAgent,
                                                               agent_mock: List[message.Message],
-                                                              agent_persist_mock: Dict[str | bytes, str | bytes]) -> None:
+                                                              agent_persist_mock: Dict[
+                                                                  str | bytes, str | bytes]) -> None:
     """Test collecting whois of IP addresses in a dns aaaa record message."""
     test_agent.process(scan_message_dns_aaaa_record)
 
