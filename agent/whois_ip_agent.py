@@ -69,7 +69,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             return True
 
     def _process_dns_record(self, message: m.Message) -> None:
-        domain = message.data["domain"]
+        domain = message.data["name"]
         is_domain_in_scope = self._is_domain_in_scope(domain)
         if is_domain_in_scope is False:
             return
