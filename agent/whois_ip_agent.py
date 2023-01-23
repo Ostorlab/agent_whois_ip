@@ -1,7 +1,8 @@
 """WhoisIP agent implementation that processes both DNS records and IP assets."""
 import ipaddress
 import logging
-from typing import Any, Dict
+import re
+from typing import Any, Dict, Optional
 
 import ipwhois
 from ipwhois import exceptions
@@ -34,6 +35,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
     ) -> None:
         agent.Agent.__init__(self, agent_definition, agent_settings)
         persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
+        self._scope_domain_regex: Optional[str] = self.args.get("scope_domain_regex")
 
     def process(self, message: m.Message) -> None:
         """Process DNS records and IP asset to emit whois record.
@@ -51,7 +53,27 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         else:
             return self._process_ip(message)
 
+    def _is_domain_in_scope(self, domain: str) -> bool:
+        """Check if a domain is in the scan scope with a regular expression."""
+        if self._scope_domain_regex is None:
+            return True
+        domain_in_scope = re.match(self._scope_domain_regex, domain)
+        if domain_in_scope is None:
+            logger.warning(
+                "Domain %s is not in scanning scope %s",
+                domain,
+                self._scope_domain_regex,
+            )
+            return False
+        else:
+            return True
+
     def _process_dns_record(self, message: m.Message) -> None:
+        domain = message.data["domain"]
+        is_domain_in_scope = self._is_domain_in_scope(domain)
+        if is_domain_in_scope is False:
+            return
+
         ip_addresses = ipwhois_data_handler.get_ips_from_dns_record_message(message)
         for ip in ip_addresses:
             host = str(ip)
