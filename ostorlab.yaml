@@ -79,3 +79,7 @@ out_selectors:
   - v3.asset.ip.v6.whois
 docker_file_path : Dockerfile
 docker_build_root : .
+args:
+  - name: "scope_domain_regex"
+    type: "string"
+    description: "Regular expression to define domain scanning scope."
