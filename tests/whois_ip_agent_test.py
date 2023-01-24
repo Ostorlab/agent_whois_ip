@@ -169,3 +169,38 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
     }
     test_agent.process(scan_message_ipv4_mask_2)
     assert len(agent_mock) == 2
+
+
+def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgInScope_emitsWhoisRecords(
+    scan_message_dns_resolver_record: message.Message,
+    whois_ip_agent_with_scope_arg: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+) -> None:
+    """Ensure the domain scope argument is enforced, and dns records of domains in the scope should be processed."""
+    del agent_persist_mock
+
+    whois_ip_agent_with_scope_arg.process(scan_message_dns_resolver_record)
+
+    assert len(agent_mock) == len(scan_message_dns_resolver_record.data["values"])
+    assert agent_mock[0].selector == "v3.asset.ip.v4.whois"
+
+
+def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgNotInScope_targetShouldNotBeProcessed(
+    whois_ip_agent_with_scope_arg: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+) -> None:
+    """Ensure the domain scope argument is enforced, and dns records of domains not in the scope should not be processed."""
+    del agent_persist_mock
+    selector = "v3.asset.domain_name.dns_record"
+    msg_data = {
+        "name": "google.co",
+        "record": "resolver",
+        "values": ["8.8.8.8", "8.8.8.9", "8.8.8.10"],
+    }
+    msg = message.Message.from_data(selector, data=msg_data)
+
+    whois_ip_agent_with_scope_arg.process(msg)
+
+    assert len(agent_mock) == 0

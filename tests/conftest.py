@@ -1,11 +1,13 @@
 """Pytest fixture for the WhoisIP agent."""
 import pathlib
 import random
+import json
 
 import pytest
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent.message import message
 from ostorlab.runtimes import definitions as runtime_definitions
+from ostorlab.utils import defintions
 
 from agent import whois_ip_agent
 
@@ -79,6 +81,28 @@ def test_agent() -> whois_ip_agent.WhoisIPAgent:
             bus_exchange_topic="NA",
             redis_url="redis://redis",
             args=[],
+            healthcheck_port=random.randint(4000, 5000),
+        )
+        return whois_ip_agent.WhoisIPAgent(definition, settings)
+
+
+@pytest.fixture
+def whois_ip_agent_with_scope_arg() -> whois_ip_agent.WhoisIPAgent:
+    """WhoisIP Agent fixture with domain scope regex argument for testing purposes."""
+    with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
+        definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
+        settings = runtime_definitions.AgentSettings(
+            key="agent/ostorlab/whois_ip",
+            bus_url="NA",
+            bus_exchange_topic="NA",
+            redis_url="redis://redis",
+            args=[
+                defintions.Arg(
+                    name="scope_domain_regex",
+                    type="string",
+                    value=json.dumps(".*ostorlab.co").encode(),
+                ),
+            ],
             healthcheck_port=random.randint(4000, 5000),
         )
         return whois_ip_agent.WhoisIPAgent(definition, settings)
