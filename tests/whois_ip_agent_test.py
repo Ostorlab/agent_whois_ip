@@ -191,7 +191,8 @@ def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgNotInScope_targetShouldNot
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
 ) -> None:
-    """Ensure the domain scope argument is enforced, and dns records of domains not in the scope should not be processed."""
+    """Ensure the domain scope argument is enforced, and dns records of
+    domains not in the scope should not be processed."""
     del agent_persist_mock
     selector = "v3.asset.domain_name.dns_record"
     msg_data = {
