@@ -3,3 +3,8 @@ pylint-quotes
 pytest
 pytest-cov
 pytest-mock
+# Typing requirements. 
+mypy
+types-requests
+types-paramiko
+types-selenium
