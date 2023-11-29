@@ -205,3 +205,22 @@ def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgNotInScope_targetShouldNot
     whois_ip_agent_with_scope_arg.process(msg)
 
     assert len(agent_mock) == 0
+
+
+def testAgentWhoisIP_whenRDAPIsDown_shouldRetry(
+    mocker,
+    scan_message_ipv4_mask: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+):
+    """Test collecting whois of an IPv4 address, when server is down should retry."""
+    del agent_persist_mock
+    mock_request = mocker.patch(
+        "urllib.request.OpenerDirector.open", return_result=mocker.Mock(status=501)
+    )
+
+    test_agent.process(scan_message_ipv4_mask)
+
+    assert len(agent_mock) == 0
+    assert mock_request.call_count == 10

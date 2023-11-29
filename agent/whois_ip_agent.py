@@ -5,6 +5,7 @@ import re
 from typing import Any, Dict, Optional
 
 import ipwhois
+import tenacity
 from ipwhois import exceptions
 from ostorlab.agent import agent
 from ostorlab.agent import definitions as agent_definitions
@@ -24,14 +25,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+MAX_RETRY_ATTEMPTS = 5
+WAIT_BETWEEN_RETRY = 3
+
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(MAX_RETRY_ATTEMPTS),
+    wait=tenacity.wait_fixed(WAIT_BETWEEN_RETRY),
+    retry=tenacity.retry_if_exception_type(ipwhois.exceptions.HTTPLookupError),
+    reraise=True,
+)
+def _get_wohis_record(host: str) -> dict[str, Any]:
+    return ipwhois.IPWhois(host).lookup_rdap()
+
 
 class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
     """WhoisIP agent that collect IP registry and AS information using the RDAP protocol."""
 
     def __init__(
-        self,
-        agent_definition: agent_definitions.AgentDefinition,
-        agent_settings: runtime_definitions.AgentSettings,
+            self,
+            agent_definition: agent_definitions.AgentDefinition,
+            agent_settings: runtime_definitions.AgentSettings,
     ) -> None:
         agent.Agent.__init__(self, agent_definition, agent_settings)
         persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
@@ -80,12 +94,12 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             if self.set_add("agent_whois_ip_asset", host):
                 logger.info("processing ip %s", host)
                 try:
-                    record = ipwhois.IPWhois(host).lookup_rdap()
+                    record = _get_wohis_record(host)
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(
                         ip, record
                     )
                     self._emit_whois_message(whois_message)
-                except ipwhois.exceptions.IPDefinedError:
+                except (ipwhois.exceptions.IPDefinedError, ipwhois.exceptions.HTTPLookupError):
                     # Case where of the loopback address.
                     logger.warning(
                         "some data not found when agent_whois_ip_asset try to process IP "
@@ -107,14 +121,15 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             for address in network.hosts():
                 try:
                     logger.info("processing IP %s", address)
-                    record = ipwhois.IPWhois(str(address)).lookup_rdap()
+                    record = _get_wohis_record(host=str(address))
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(
                         address, record
                     )
                     self._emit_whois_message(whois_message)
                 except (
-                    ipwhois.exceptions.IPDefinedError,
-                    ipwhois.exceptions.ASNRegistryError,
+                        ipwhois.exceptions.IPDefinedError,
+                        ipwhois.exceptions.ASNRegistryError,
+                        ipwhois.exceptions.HTTPLookupError,
                 ):
                     # Case where of the loopback address.
                     logger.warning(
