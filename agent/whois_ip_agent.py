@@ -35,7 +35,7 @@ WAIT_BETWEEN_RETRY = 3
     retry=tenacity.retry_if_exception_type(ipwhois.exceptions.HTTPLookupError),
     reraise=True,
 )
-def _get_wohis_record(host: str) -> dict[str, Any]:
+def _get_whois_record(host: str) -> Any:
     return ipwhois.IPWhois(host).lookup_rdap()
 
 
@@ -94,7 +94,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             if self.set_add("agent_whois_ip_asset", host):
                 logger.info("processing ip %s", host)
                 try:
-                    record = _get_wohis_record(host)
+                    record = _get_whois_record(host)
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(
                         ip, record
                     )
@@ -124,7 +124,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             for address in network.hosts():
                 try:
                     logger.info("processing IP %s", address)
-                    record = _get_wohis_record(host=str(address))
+                    record = _get_whois_record(host=str(address))
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(
                         address, record
                     )

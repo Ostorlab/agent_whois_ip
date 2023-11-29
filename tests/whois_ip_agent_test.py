@@ -2,6 +2,7 @@
 from typing import List, Dict
 
 from ostorlab.agent.message import message
+from pytest_mock import plugin
 
 from agent import whois_ip_agent
 
@@ -208,12 +209,12 @@ def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgNotInScope_targetShouldNot
 
 
 def testAgentWhoisIP_whenRDAPIsDown_shouldRetry(
-    mocker,
+    mocker: plugin.MockerFixture,
     scan_message_ipv4_mask: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
-):
+) -> None:
     """Test collecting whois of an IPv4 address, when server is down should retry."""
     del agent_persist_mock
     mock_request = mocker.patch(
