@@ -43,9 +43,9 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
     """WhoisIP agent that collect IP registry and AS information using the RDAP protocol."""
 
     def __init__(
-            self,
-            agent_definition: agent_definitions.AgentDefinition,
-            agent_settings: runtime_definitions.AgentSettings,
+        self,
+        agent_definition: agent_definitions.AgentDefinition,
+        agent_settings: runtime_definitions.AgentSettings,
     ) -> None:
         agent.Agent.__init__(self, agent_definition, agent_settings)
         persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
@@ -99,7 +99,10 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                         ip, record
                     )
                     self._emit_whois_message(whois_message)
-                except (ipwhois.exceptions.IPDefinedError, ipwhois.exceptions.HTTPLookupError):
+                except (
+                    ipwhois.exceptions.IPDefinedError,
+                    ipwhois.exceptions.HTTPLookupError,
+                ):
                     # Case where of the loopback address.
                     logger.warning(
                         "some data not found when agent_whois_ip_asset try to process IP "
@@ -127,9 +130,9 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     )
                     self._emit_whois_message(whois_message)
                 except (
-                        ipwhois.exceptions.IPDefinedError,
-                        ipwhois.exceptions.ASNRegistryError,
-                        ipwhois.exceptions.HTTPLookupError,
+                    ipwhois.exceptions.IPDefinedError,
+                    ipwhois.exceptions.ASNRegistryError,
+                    ipwhois.exceptions.HTTPLookupError,
                 ):
                     # Case where of the loopback address.
                     logger.warning(
