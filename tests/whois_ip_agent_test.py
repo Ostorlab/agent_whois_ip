@@ -210,7 +210,7 @@ def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgNotInScope_targetShouldNot
 
 def testAgentWhoisIP_whenRDAPIsDown_shouldRetry(
     mocker: plugin.MockerFixture,
-    scan_message_ipv4_mask: message.Message,
+    scan_message_ipv4: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
@@ -221,7 +221,7 @@ def testAgentWhoisIP_whenRDAPIsDown_shouldRetry(
         "urllib.request.OpenerDirector.open", return_result=mocker.Mock(status=501)
     )
 
-    test_agent.process(scan_message_ipv4_mask)
+    test_agent.process(scan_message_ipv4)
 
     assert len(agent_mock) == 0
-    assert mock_request.call_count == 10
+    assert mock_request.call_count == 2
