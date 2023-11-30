@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MAX_RETRY_ATTEMPTS = 5
+MAX_RETRY_ATTEMPTS = 2
 WAIT_BETWEEN_RETRY = 3
 
 
