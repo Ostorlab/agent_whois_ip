@@ -2,7 +2,7 @@
 import ipaddress
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, cast
 
 import ipwhois
 import tenacity
@@ -35,8 +35,9 @@ WAIT_BETWEEN_RETRY = 3
     retry=tenacity.retry_if_exception_type(ipwhois.exceptions.HTTPLookupError),
     reraise=True,
 )
-def _get_whois_record(host: str) -> Any:
-    return ipwhois.IPWhois(host).lookup_rdap()
+def _get_whois_record(host: str) -> dict[str, Any]:
+    lookup_rdap = ipwhois.IPWhois(host).lookup_rdap()
+    return cast(dict[str, Any], lookup_rdap)
 
 
 class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
@@ -49,7 +50,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
     ) -> None:
         agent.Agent.__init__(self, agent_definition, agent_settings)
         persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
-        self._scope_domain_regex: Optional[str] = self.args.get("scope_domain_regex")
+        self._scope_domain_regex: str | None = self.args.get("scope_domain_regex")
 
     def process(self, message: m.Message) -> None:
         """Process DNS records and IP asset to emit whois record.
