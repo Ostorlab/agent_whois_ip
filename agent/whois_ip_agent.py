@@ -64,11 +64,11 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             None
         """
         logger.debug("processing message of selector %s", message.selector)
-
+        host = message.data.get("host")
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
-        else:
-            return self._process_ip(message)
+        elif host is not None:
+            return self._process_ip(message, host)
 
     def _is_domain_in_scope(self, domain: str) -> bool:
         """Check if a domain is in the scan scope with a regular expression."""
@@ -114,11 +114,10 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 logger.info("target %s was processed before, exiting", host)
                 return
 
-    def _process_ip(self, message: m.Message) -> None:
-        host = message.data.get("host")
+    def _process_ip(self, message: m.Message, host: str) -> None:
         mask = message.data.get("mask")
         if mask is None:
-            network = ipaddress.ip_network(f"{host}")
+            network = ipaddress.ip_network(host)
         else:
             version = message.data.get("version")
             if version not in (4, 6):
