@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRY_ATTEMPTS = 2
 WAIT_BETWEEN_RETRY = 3
+IPV4_CIDR_LIMIT = 16
+IPV6_CIDR_LIMIT = 112
 
 
 @tenacity.retry(
@@ -62,11 +64,11 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             None
         """
         logger.debug("processing message of selector %s", message.selector)
-
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
-        else:
-            return self._process_ip(message)
+        host = message.data.get("host")
+        if host is not None:
+            return self._process_ip(message, host)
 
     def _is_domain_in_scope(self, domain: str) -> bool:
         """Check if a domain is in the scan scope with a regular expression."""
@@ -112,14 +114,23 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 logger.info("target %s was processed before, exiting", host)
                 return
 
-    def _process_ip(self, message: m.Message) -> None:
-        host = message.data.get("host")
+    def _process_ip(self, message: m.Message, host: str) -> None:
         mask = message.data.get("mask")
-        network = (
-            ipaddress.ip_network(f"{host}/{mask}", strict=False)
-            if mask is not None
-            else ipaddress.ip_network(f"{host}")
-        )
+        if mask is None:
+            network = ipaddress.ip_network(host)
+        else:
+            version = message.data.get("version")
+            if version not in (4, 6):
+                raise ValueError(f"Incorrect ip version {version}.")
+            elif version == 4 and int(mask) < IPV4_CIDR_LIMIT:
+                raise ValueError(
+                    f"Subnet mask below {IPV4_CIDR_LIMIT} is not supported."
+                )
+            elif version == 6 and int(mask) < IPV6_CIDR_LIMIT:
+                raise ValueError(
+                    f"Subnet mask below {IPV6_CIDR_LIMIT} is not supported."
+                )
+            network = ipaddress.ip_network(f"{host}/{mask}", strict=False)
 
         if self.add_ip_network("agent_whois_ip_asset", network):
             for address in network.hosts():
