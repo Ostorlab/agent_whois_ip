@@ -228,7 +228,7 @@ def testAgentWhoisIP_whenRDAPIsDown_shouldRetry(
     assert mock_request.call_count == 2
 
 
-def testPrepareTargets_whenIPv4AssetReachCIDRLimit_raiseValueError(
+def testWhoisIP_whenIPv4AssetReachCIDRLimit_raiseValueError(
     test_agent: whois_ip_agent.WhoisIPAgent,
     mocker: plugin.MockerFixture,
     scan_message_ipv4_with_mask8: message.Message,
@@ -243,7 +243,7 @@ def testPrepareTargets_whenIPv4AssetReachCIDRLimit_raiseValueError(
         test_agent.process(scan_message_ipv4_with_mask8)
 
 
-def testPrepareTargets_whenIPv4AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
+def testWhoisIP_whenIPv4AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
     test_agent: whois_ip_agent.WhoisIPAgent,
     mocker: plugin.MockerFixture,
     scan_message_ipv4_with_mask16: message.Message,
@@ -257,7 +257,7 @@ def testPrepareTargets_whenIPv4AssetDoesNotReachCIDRLimit_doesNotRaiseValueError
     test_agent.process(scan_message_ipv4_with_mask16)
 
 
-def testPrepareTargets_whenIPv6AssetReachCIDRLimit_raiseValueError(
+def testWhoisIP_whenIPv6AssetReachCIDRLimit_raiseValueError(
     test_agent: whois_ip_agent.WhoisIPAgent,
     mocker: plugin.MockerFixture,
     scan_message_ipv6_with_mask64: message.Message,
@@ -272,7 +272,7 @@ def testPrepareTargets_whenIPv6AssetReachCIDRLimit_raiseValueError(
         test_agent.process(scan_message_ipv6_with_mask64)
 
 
-def testPrepareTargets_whenIPv6AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
+def testWhoisIP_whenIPv6AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
     test_agent: whois_ip_agent.WhoisIPAgent,
     mocker: plugin.MockerFixture,
     scan_message_ipv6_with_mask112: message.Message,
@@ -284,3 +284,12 @@ def testPrepareTargets_whenIPv6AssetDoesNotReachCIDRLimit_doesNotRaiseValueError
     )
 
     test_agent.process(scan_message_ipv6_with_mask112)
+
+
+def testWhoisIP_whenIPAssetHasIncorrectVersion_raiseValueError(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    scan_message_ipv_with_incorrect_version: message.Message,
+) -> None:
+    """Test the CIDR Limit in case IP has incorrect version."""
+    with pytest.raises(ValueError, match="Incorrect ip version 5."):
+        test_agent.process(scan_message_ipv_with_incorrect_version)
