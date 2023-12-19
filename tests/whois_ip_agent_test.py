@@ -3,6 +3,7 @@ from typing import List, Dict
 
 from ostorlab.agent.message import message
 from pytest_mock import plugin
+import pytest
 
 from agent import whois_ip_agent
 
@@ -225,3 +226,61 @@ def testAgentWhoisIP_whenRDAPIsDown_shouldRetry(
 
     assert len(agent_mock) == 0
     assert mock_request.call_count == 2
+
+
+def testPrepareTargets_whenIPv4AssetReachCIDRLimit_raiseValueError(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    mocker: plugin.MockerFixture,
+    scan_message_ipv4_with_mask8: message.Message,
+) -> None:
+    """Test the CIDR Limit in case IPV4 and the Limit is reached."""
+    mocker.patch(
+        "ostorlab.agent.mixins.agent_persist_mixin.AgentPersistMixin.add_ip_network",
+        return_value=False,
+    )
+
+    with pytest.raises(ValueError, match="Subnet mask below 16 is not supported."):
+        test_agent.process(scan_message_ipv4_with_mask8)
+
+
+def testPrepareTargets_whenIPv4AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    mocker: plugin.MockerFixture,
+    scan_message_ipv4_with_mask16: message.Message,
+) -> None:
+    """Test the CIDR Limit in case IPV4 and the Limit is not reached."""
+    mocker.patch(
+        "ostorlab.agent.mixins.agent_persist_mixin.AgentPersistMixin.add_ip_network",
+        return_value=False,
+    )
+
+    test_agent.process(scan_message_ipv4_with_mask16)
+
+
+def testPrepareTargets_whenIPv6AssetReachCIDRLimit_raiseValueError(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    mocker: plugin.MockerFixture,
+    scan_message_ipv6_with_mask64: message.Message,
+) -> None:
+    """Test the CIDR Limit in case IPV6 and the Limit is reached."""
+    mocker.patch(
+        "ostorlab.agent.mixins.agent_persist_mixin.AgentPersistMixin.add_ip_network",
+        return_value=False,
+    )
+
+    with pytest.raises(ValueError, match="Subnet mask below 112 is not supported."):
+        test_agent.process(scan_message_ipv6_with_mask64)
+
+
+def testPrepareTargets_whenIPv6AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    mocker: plugin.MockerFixture,
+    scan_message_ipv6_with_mask112: message.Message,
+) -> None:
+    """Test the CIDR Limit in case IPV6 and the Limit is not reached."""
+    mocker.patch(
+        "ostorlab.agent.mixins.agent_persist_mixin.AgentPersistMixin.add_ip_network",
+        return_value=False,
+    )
+
+    test_agent.process(scan_message_ipv6_with_mask112)

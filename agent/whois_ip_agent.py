@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRY_ATTEMPTS = 2
 WAIT_BETWEEN_RETRY = 3
+IPV4_CIDR_LIMIT = 16
+IPV6_CIDR_LIMIT = 112
 
 
 @tenacity.retry(
@@ -115,11 +117,19 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
     def _process_ip(self, message: m.Message) -> None:
         host = message.data.get("host")
         mask = message.data.get("mask")
-        network = (
-            ipaddress.ip_network(f"{host}/{mask}", strict=False)
-            if mask is not None
-            else ipaddress.ip_network(f"{host}")
-        )
+        if mask is None:
+            network = ipaddress.ip_network(f"{host}")
+        else:
+            version = message.data.get("version")
+            if version == 4 and int(mask) < IPV4_CIDR_LIMIT:
+                raise ValueError(
+                    f"Subnet mask below {IPV4_CIDR_LIMIT} is not supported."
+                )
+            if version == 6 and int(mask) < IPV6_CIDR_LIMIT:
+                raise ValueError(
+                    f"Subnet mask below {IPV6_CIDR_LIMIT} is not supported."
+                )
+            network = ipaddress.ip_network(f"{host}/{mask}", strict=False)
 
         if self.add_ip_network("agent_whois_ip_asset", network):
             for address in network.hosts():
