@@ -64,10 +64,10 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             None
         """
         logger.debug("processing message of selector %s", message.selector)
-        host = message.data.get("host")
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
-        elif host is not None:
+        host = message.data.get("host")
+        if host is not None:
             return self._process_ip(message, host)
 
     def _is_domain_in_scope(self, domain: str) -> bool:
