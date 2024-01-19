@@ -89,7 +89,7 @@ def test_agent() -> whois_ip_agent.WhoisIPAgent:
 
 @pytest.fixture
 def whois_ip_agent_with_scope_arg(
-    agent_persist_mock: Dict[str | bytes, str | bytes]
+    agent_persist_mock: Dict[str | bytes, str | bytes],
 ) -> whois_ip_agent.WhoisIPAgent:
     """WhoisIP Agent fixture with domain scope regex argument for testing purposes."""
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
