@@ -20,7 +20,7 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
     assert agent_mock[0].selector == "v3.asset.ip.v4.whois"
     assert agent_mock[0].data == {
         "asn_country_code": "US",
-        "asn_date": "1992-12-01",
+        "asn_date": "2023-12-28",
         "asn_description": "GOOGLE, US",
         "asn_number": 15169,
         "asn_registry": "arin",
@@ -42,9 +42,9 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
         "mask": "32",
         "network": {
             "cidr": "8.8.8.0/24",
-            "handle": "NET-8-8-8-0-1",
-            "name": "LVLT-GOGL-8-8-8",
-            "parent_handle": "NET-8-0-0-0-1",
+            "handle": "NET-8-8-8-0-2",
+            "name": "GOGL",
+            "parent_handle": "NET-8-0-0-0-0",
         },
         "version": 4,
     }
@@ -141,7 +141,7 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
     assert agent_mock[0].selector == "v3.asset.ip.v4.whois"
     assert agent_mock[0].data == {
         "asn_country_code": "US",
-        "asn_date": "1992-12-01",
+        "asn_date": "2023-12-28",
         "asn_description": "GOOGLE, US",
         "asn_number": 15169,
         "asn_registry": "arin",
@@ -163,9 +163,9 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
         "mask": "32",
         "network": {
             "cidr": "8.8.8.0/24",
-            "handle": "NET-8-8-8-0-1",
-            "name": "LVLT-GOGL-8-8-8",
-            "parent_handle": "NET-8-0-0-0-1",
+            "handle": "NET-8-8-8-0-2",
+            "name": "GOGL",
+            "parent_handle": "NET-8-0-0-0-0",
         },
         "version": 4,
     }
