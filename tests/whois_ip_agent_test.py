@@ -284,7 +284,7 @@ def testWhoisIP_whenIPAssetHasIncorrectVersion_raiseValueError(
         test_agent.process(scan_message_ipv_with_incorrect_version)
 
 
-def testWhoisIP_whenIPHasNotASN_doesNotCrash(
+def testWhoisIP_whenIPHasNoASN_doesNotCrash(
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     mocker: plugin.MockerFixture,
