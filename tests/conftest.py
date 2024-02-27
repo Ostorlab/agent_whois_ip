@@ -161,3 +161,15 @@ def scan_message_ipv_with_incorrect_version() -> message.Message:
         "version": 5,
     }
     return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture()
+def scan_message_global_ipv4_with_mask32() -> message.Message:
+    """Creates a message of type v3.asset.ip with global IP address"""
+    selector = "v3.asset.ip"
+    msg_data = {
+        "host": "41.0.0.0",
+        "mask": "32",
+        "version": 4,
+    }
+    return message.Message.from_data(selector, data=msg_data)

@@ -1,9 +1,10 @@
 """Unittests for WhoisIP agent."""
 from typing import List, Dict
 
+import ipwhois
+import pytest
 from ostorlab.agent.message import message
 from pytest_mock import plugin
-import pytest
 
 from agent import whois_ip_agent
 
@@ -281,3 +282,24 @@ def testWhoisIP_whenIPAssetHasIncorrectVersion_raiseValueError(
     """Test the CIDR Limit in case IP has incorrect version."""
     with pytest.raises(ValueError, match="Incorrect ip version 5."):
         test_agent.process(scan_message_ipv_with_incorrect_version)
+
+
+def testWhoisIP_whenIPHasNoASN_doesNotCrash(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    mocker: plugin.MockerFixture,
+    scan_message_global_ipv4_with_mask32: message.Message,
+) -> None:
+    """Test the CIDR Limit in case IP has no ASN."""
+    mocker.patch(
+        "ostorlab.agent.mixins.agent_persist_mixin.AgentPersistMixin.add_ip_network",
+        return_value=True,
+    )
+    mocker.patch(
+        "agent.whois_ip_agent._get_whois_record",
+        side_effect=ipwhois.exceptions.ASNRegistryError,
+    )
+
+    test_agent.process(scan_message_global_ipv4_with_mask32)
+
+    assert len(agent_mock) == 0
