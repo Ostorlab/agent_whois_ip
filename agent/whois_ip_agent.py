@@ -105,6 +105,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 except (
                     ipwhois.exceptions.IPDefinedError,
                     ipwhois.exceptions.HTTPLookupError,
+                    ipwhois.exceptions.ASNRegistryError,
                 ):
                     # Case where of the loopback address.
                     logger.warning(
