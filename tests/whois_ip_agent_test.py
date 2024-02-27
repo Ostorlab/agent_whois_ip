@@ -288,7 +288,7 @@ def testWhoisIP_whenIPHasNoASN_doesNotCrash(
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     mocker: plugin.MockerFixture,
-    scan_message_global_ipv4_with_mask16: message.Message,
+    scan_message_global_ipv4_with_mask32: message.Message,
 ) -> None:
     """Test the CIDR Limit in case IP has no ASN."""
     mocker.patch(
@@ -300,6 +300,6 @@ def testWhoisIP_whenIPHasNoASN_doesNotCrash(
         side_effect=ipwhois.exceptions.ASNRegistryError,
     )
 
-    test_agent.process(scan_message_global_ipv4_with_mask16)
+    test_agent.process(scan_message_global_ipv4_with_mask32)
 
     assert len(agent_mock) == 0
