@@ -1,4 +1,5 @@
 """WhoisIP agent implementation that processes both DNS records and IP assets."""
+
 import ipaddress
 import logging
 import re

@@ -1,4 +1,5 @@
 """Helper module for preparing the whois IP messages."""
+
 import ipaddress
 import logging
 from typing import Any, Dict, Union, Optional, List

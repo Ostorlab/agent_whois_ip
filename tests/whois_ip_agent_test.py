@@ -1,4 +1,5 @@
 """Unittests for WhoisIP agent."""
+
 from typing import List, Dict
 
 import ipwhois
