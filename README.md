@@ -16,7 +16,7 @@ address._
 <img src="https://github.com/Ostorlab/agent_whois_ip/blob/main/images/logo.png" alt="agent-whois-ip" />
 </p>
 
-This repository is an implementation of [Ostorlab Agent](https://pypi.org/project/ostorlab/)
+This repository is an implementation of [OXO Agent](https://pypi.org/project/ostorlab/)
 for [ipwhois](https://pypi.org/project/ipwhois/).
 
 ## Getting Started
@@ -24,33 +24,33 @@ for [ipwhois](https://pypi.org/project/ipwhois/).
 To perform your first scan, simply run the following command.
 
 ```shell
-ostorlab scan run --install --agent agent/ostorlab/whois_ip ip 8.8.8.8
+oxo scan run --install --agent agent/ostorlab/whois_ip ip 8.8.8.8
 ```
 
 This command will download and install `agent/ostorlab/whois_ip`.
 For more information, please refer to
-the [Ostorlab Documentation](https://github.com/Ostorlab/ostorlab/blob/main/README.md)
+the [OXO Documentation](https://oxo.ostorlab.co/docs)
 
 ## Usage
 
-Agent Whois can be installed directly from the ostorlab agent store or built from this repository.
+Agent Whois can be installed directly from the oxo agent store or built from this repository.
 
-### Install directly from ostorlab agent store
+### Install directly from oxo agent store
 
  ```shell
- ostorlab agent install agent/ostorlab/whois_ip
+ oxo agent install agent/ostorlab/whois_ip
  ```
 
 You can then run the agent with the following command:
 
 ```shell
-ostorlab scan run --agent agent/ostorlab/whois_ip domain-name tesla.com
+oxo scan run --agent agent/ostorlab/whois_ip domain-name tesla.com
 ```
 
 ### Build directly from the repository
 
-1. To build the whois_ip agent you need to have [ostorlab](https://pypi.org/project/ostorlab/) installed in your
-   machine. if you have already installed ostorlab, you can skip this step.
+1. To build the whois_ip agent you need to have [oxo](https://pypi.org/project/ostorlab/) installed in your
+   machine. if you have already installed oxo, you can skip this step.
 
 ```shell
 pip3 install ostorlab
@@ -62,10 +62,10 @@ pip3 install ostorlab
 git clone https://github.com/Ostorlab/agent_whois_ip.git && cd agent_whois_ip
 ```
 
-3. Build the agent image using ostorlab cli.
+3. Build the agent image using oxo cli.
 
  ```shell
- ostorlab agent build --file=ostorlab.yaml
+ oxo agent build --file=ostorlab.yaml
  ```
 
 You can pass the optional flag `--organization` to specify your organisation. The organization is empty by default.
@@ -73,11 +73,11 @@ You can pass the optional flag `--organization` to specify your organisation. Th
 1. Run the agent using on of the following commands:
     * If you did not specify an organization when building the image:
      ```shell
-     ostorlab scan run --agent agent//whois_ip ip 8.8.8.8
+     oxo scan run --agent agent//whois_ip ip 8.8.8.8
      ```
     * If you specified an organization when building the image:
      ```shell
-     ostorlab scan run --agent agent/[ORGANIZATION]/whois_ip ip 8.8.8.8
+     oxo scan run --agent agent/[ORGANIZATION]/whois_ip ip 8.8.8.8
      ```
 
 ## License
