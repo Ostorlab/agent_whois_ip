@@ -1,6 +1,7 @@
 """Unittests for WhoisIP agent."""
 
 from typing import List, Dict
+from unittest import mock
 
 import ipwhois
 import pytest
@@ -304,3 +305,32 @@ def testWhoisIP_whenIPHasNoASN_doesNotCrash(
     test_agent.process(scan_message_global_ipv4_with_mask32)
 
     assert len(agent_mock) == 0
+
+
+def testWhoisIP_withIPv4AndMaskButNoVersion_shouldHandleVersionCorrectly(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_persist_mock: dict[str | bytes, str | bytes],
+) -> None:
+    """Test that process() handles the case when the version is None."""
+    message_data = {"host": "80.121.155.176", "mask": "29"}
+    test_message = message.Message.from_data(
+        selector="v3.asset.ip.v4",
+        data=message_data,
+    )
+
+    with mock.patch.object(
+        test_agent, "_redis_client"
+    ) as mock_redis_client, mock.patch.object(
+        test_agent, "add_ip_network"
+    ) as mock_add_ip_network, mock.patch.object(
+        test_agent, "start", mock.MagicMock()
+    ), mock.patch.object(test_agent, "run", mock.MagicMock()), mock.patch(
+        "agent.whois_ip_agent.WhoisIPAgent.main", mock.MagicMock()
+    ):
+        mock_redis_client.sismember.return_value = False
+
+        mock_add_ip_network.return_value = None
+
+        test_agent.process(test_message)
+
+        mock_add_ip_network.assert_called_once()

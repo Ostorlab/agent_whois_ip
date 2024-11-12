@@ -122,6 +122,12 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             network = ipaddress.ip_network(host)
         else:
             version = message.data.get("version")
+            if version is None:
+                try:
+                    ip = ipaddress.ip_address(host)
+                    version = ip.version
+                except ValueError:
+                    raise ValueError(f"Invalid IP address: {host}")
             if version not in (4, 6):
                 raise ValueError(f"Incorrect ip version {version}.")
             elif version == 4 and int(mask) < IPV4_CIDR_LIMIT:
