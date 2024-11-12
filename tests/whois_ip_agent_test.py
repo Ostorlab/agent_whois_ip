@@ -334,3 +334,16 @@ def testWhoisIP_withIPv4AndMaskButNoVersion_shouldHandleVersionCorrectly(
         test_agent.process(test_message)
 
         mock_add_ip_network.assert_called_once()
+
+
+def testWhoisIP_whenInvalidIPAddressIsProvided_raisesValueError(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that a ValueError is raised when an invalid IP address is provided."""
+    input_selector = "v3.asset.ip.v4"
+    input_data = {"host": "invalid_ip", "mask": "24"}
+    ip_msg = message.Message.from_data(selector=input_selector, data=input_data)
+
+    with pytest.raises(ValueError, match="Invalid IP address: invalid_ip"):
+        test_agent.process(ip_msg)
