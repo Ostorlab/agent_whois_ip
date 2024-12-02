@@ -318,14 +318,12 @@ def testWhoisIP_withIPv4AndMaskButNoVersion_shouldHandleVersionCorrectly(
         data=message_data,
     )
 
-    with mock.patch.object(
-        test_agent, "_redis_client"
-    ) as mock_redis_client, mock.patch.object(
-        test_agent, "add_ip_network"
-    ) as mock_add_ip_network, mock.patch.object(
-        test_agent, "start", mock.MagicMock()
-    ), mock.patch.object(test_agent, "run", mock.MagicMock()), mock.patch(
-        "agent.whois_ip_agent.WhoisIPAgent.main", mock.MagicMock()
+    with (
+        mock.patch.object(test_agent, "_redis_client") as mock_redis_client,
+        mock.patch.object(test_agent, "add_ip_network") as mock_add_ip_network,
+        mock.patch.object(test_agent, "start", mock.MagicMock()),
+        mock.patch.object(test_agent, "run", mock.MagicMock()),
+        mock.patch("agent.whois_ip_agent.WhoisIPAgent.main", mock.MagicMock()),
     ):
         mock_redis_client.sismember.return_value = False
 
@@ -347,3 +345,24 @@ def testWhoisIP_whenInvalidIPAddressIsProvided_raisesValueError(
 
     with pytest.raises(ValueError, match="Invalid IP address: invalid_ip"):
         test_agent.process(ip_msg)
+
+
+def testWhoisIp_whenASNParseErrorOccure_logWithoutCrash(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    scan_message_ipv4: message.Message,
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    agent_mock: List[message.Message],
+    caplog: pytest.LogCaptureFixture,
+):
+    """Test that ASNParseError is caught and handled gracefully."""
+    mocker.patch(
+        "ipwhois.IPWhois.lookup_rdap", side_effect=ipwhois.exceptions.ASNParseError
+    )
+
+    test_agent.process(scan_message_ipv4)
+
+    assert len(agent_mock) == 0
+    assert (
+        "Some data not found when agent_whois_ip_asset try to process IP" in caplog.text
+    )
