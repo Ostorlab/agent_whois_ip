@@ -354,8 +354,8 @@ def testWhoisIp_whenASNParseErrorOccure_logWithoutCrash(
     mocker: plugin.MockerFixture,
     agent_mock: List[message.Message],
     caplog: pytest.LogCaptureFixture,
-):
-    """Test that ASNParseError is caught and handled gracefully."""
+) -> None:
+    """Test that ASNParseError is caught and logged."""
     mocker.patch(
         "ipwhois.IPWhois.lookup_rdap", side_effect=ipwhois.exceptions.ASNParseError
     )
