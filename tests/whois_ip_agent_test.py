@@ -363,6 +363,4 @@ def testWhoisIp_whenASNParseErrorOccure_logWithoutCrash(
     test_agent.process(scan_message_ipv4)
 
     assert len(agent_mock) == 0
-    assert (
-        "Some data not found when agent_whois_ip_asset try to process IP" in caplog.text
-    )
+    assert "ASN parse error for IP" in caplog.text
