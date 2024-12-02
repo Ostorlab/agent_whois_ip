@@ -39,7 +39,6 @@ IPV6_CIDR_LIMIT = 112
     reraise=True,
 )
 def _get_whois_record(host: str) -> dict[str, Any]:
-    logger.info("host: %s", host)
     lookup_rdap = ipwhois.IPWhois(host).lookup_rdap()
     return cast(dict[str, Any], lookup_rdap)
 
@@ -65,7 +64,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         Returns:
             None
         """
-        logger.info("processing message of selector %s", message.selector)
+        logger.debug("processing message of selector %s", message.selector)
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
         host = message.data.get("host")
@@ -164,7 +163,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 except exceptions.HTTPRateLimitError:
                     logger.info("Rate limit error for IP %s", address)
         else:
-            logger.info("target %s was processed before, exiting", network)
+            logger.warning("target %s was processed before, exiting", network)
             return
 
     def _emit_whois_message(self, whois_message: Dict[str, Any]) -> None:
