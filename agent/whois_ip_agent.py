@@ -159,6 +159,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                         "Some data not found when agent_whois_ip_asset try to process IP %s",
                         address,
                     )
+                except ipwhois.exceptions.ASNParseError:
+                    logger.error("ASN parse error for IP %s", address)
                 except exceptions.HTTPRateLimitError:
                     logger.warning("Rate limit error for IP %s", address)
         else:
