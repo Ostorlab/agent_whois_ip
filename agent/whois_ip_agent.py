@@ -153,13 +153,14 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     ipwhois.exceptions.IPDefinedError,
                     ipwhois.exceptions.ASNRegistryError,
                     ipwhois.exceptions.HTTPLookupError,
-                    ipwhois.exceptions.ASNParseError,
                 ):
                     # Case where of the loopback address.
                     logger.error(
                         "Some data not found when agent_whois_ip_asset try to process IP %s",
                         address,
                     )
+                except ipwhois.exceptions.ASNParseError:
+                    logger.error("ASN parse error for IP %s", address)
                 except exceptions.HTTPRateLimitError:
                     logger.info("Rate limit error for IP %s", address)
         else:
