@@ -1,9 +1,8 @@
 """Pytest fixture for the WhoisIP agent."""
 
 import pathlib
-import random
 import json
-from typing import Dict
+from typing import Dict, Any
 
 import pytest
 from ostorlab.agent import definitions as agent_definitions
@@ -83,7 +82,7 @@ def test_agent() -> whois_ip_agent.WhoisIPAgent:
             bus_exchange_topic="NA",
             redis_url="redis://redis",
             args=[],
-            healthcheck_port=random.randint(4000, 5000),
+            healthcheck_port=0,
         )
         return whois_ip_agent.WhoisIPAgent(definition, settings)
 
@@ -107,7 +106,7 @@ def whois_ip_agent_with_scope_arg(
                     value=json.dumps(".*ostorlab.co").encode(),
                 ),
             ],
-            healthcheck_port=random.randint(4000, 5000),
+            healthcheck_port=0,
         )
         return whois_ip_agent.WhoisIPAgent(definition, settings)
 
@@ -174,3 +173,90 @@ def scan_message_global_ipv4_with_mask32() -> message.Message:
         "version": 4,
     }
     return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def mock_whois_lookup(mocker: Any) -> None:
+    """Mocks the rdap lookup to avoid live network requests."""
+
+    def _mock_get_whois_record(host: str, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        if ":" in host:
+            return {
+                "asn_country_code": "IE",
+                "asn": "15169",
+                "asn_date": "2009-10-05",
+                "asn_description": "GOOGLE, US",
+                "asn_registry": "ripencc",
+                "objects": {
+                    "GOOG1-RIPE": {
+                        "contact": {
+                            "address": [
+                                {
+                                    "value": "Google Ireland Limited BARROW STREET 1ST & 2ND FLOOR 4 DUBLIN IRELAND"
+                                }
+                            ],
+                            "kind": "group",
+                            "name": "Google Ireland Limited",
+                        },
+                        "handle": "GOOG1-RIPE",
+                    },
+                    "MNT-GOOG-PROD": {
+                        "contact": {
+                            "kind": "individual",
+                            "name": "MNT-GOOG-PROD",
+                            "address": None,
+                        },
+                        "handle": "MNT-GOOG-PROD",
+                    },
+                    "AR15518-RIPE": {
+                        "contact": {
+                            "address": [
+                                {
+                                    "value": "Google Inc. PO BOX 369 CA 94041 Mountain View United States"
+                                }
+                            ],
+                            "kind": "group",
+                            "name": "Abuse-C Role",
+                        },
+                        "handle": "AR15518-RIPE",
+                    },
+                },
+                "network": {
+                    "cidr": "2a00:1450:4000::/37",
+                    "handle": "2a00:1450:4000::/37",
+                    "name": "IE-GOOGLE-2a00-1450-4000-1",
+                    "parent_handle": "2a00:1450::/29",
+                },
+            }
+        else:
+            return {
+                "asn_country_code": "US",
+                "asn_date": "2023-12-28",
+                "asn_description": "GOOGLE, US",
+                "asn": "15169",
+                "asn_registry": "arin",
+                "objects": {
+                    "GOGL": {
+                        "contact": {
+                            "address": [
+                                {
+                                    "value": "1600 Amphitheatre Parkway\nMountain View\nCA\n94043\nUnited States"
+                                }
+                            ],
+                            "kind": "org",
+                            "name": "Google LLC",
+                        },
+                        "handle": "GOGL",
+                    }
+                },
+                "network": {
+                    "cidr": "8.8.8.0/24",
+                    "handle": "NET-8-8-8-0-2",
+                    "name": "GOGL",
+                    "parent_handle": "NET-8-0-0-0-0",
+                },
+            }
+
+    mocker.patch(
+        "agent.whois_ip_agent._get_whois_record", side_effect=_mock_get_whois_record
+    )
