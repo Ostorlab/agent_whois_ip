@@ -1,7 +1,6 @@
 """Pytest fixture for the WhoisIP agent."""
 
 import pathlib
-import random
 import json
 from typing import Dict
 
@@ -83,7 +82,7 @@ def test_agent() -> whois_ip_agent.WhoisIPAgent:
             bus_exchange_topic="NA",
             redis_url="redis://redis",
             args=[],
-            healthcheck_port=random.randint(4000, 5000),
+            healthcheck_port=0,
         )
         return whois_ip_agent.WhoisIPAgent(definition, settings)
 
@@ -107,7 +106,7 @@ def whois_ip_agent_with_scope_arg(
                     value=json.dumps(".*ostorlab.co").encode(),
                 ),
             ],
-            healthcheck_port=random.randint(4000, 5000),
+            healthcheck_port=0,
         )
         return whois_ip_agent.WhoisIPAgent(definition, settings)
 
