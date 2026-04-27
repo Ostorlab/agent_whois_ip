@@ -16,6 +16,7 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of an IPv4 address."""
     test_agent.process(scan_message_ipv4)
@@ -58,6 +59,7 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of an IPv6 address."""
     test_agent.process(scan_message_ipv6)
@@ -110,6 +112,7 @@ def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of IP addresses in a dns resolver record message."""
     test_agent.process(scan_message_dns_resolver_record)
@@ -123,6 +126,7 @@ def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of IP addresses in a dns aaaa record message."""
     test_agent.process(scan_message_dns_aaaa_record)
@@ -137,6 +141,7 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of an IPv4 address."""
     test_agent.process(scan_message_ipv4_mask)
@@ -181,6 +186,7 @@ def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgInScope_emitsWhoisRecords(
     whois_ip_agent_with_scope_arg: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
     agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_whois_lookup: None,
 ) -> None:
     """Ensure the domain scope argument is enforced, and dns records of domains in the scope should be processed."""
     del agent_persist_mock
