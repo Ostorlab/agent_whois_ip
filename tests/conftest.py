@@ -201,7 +201,11 @@ def mock_whois_lookup(mocker: Any) -> None:
                         "handle": "GOOG1-RIPE",
                     },
                     "MNT-GOOG-PROD": {
-                        "contact": {"kind": "individual", "name": "MNT-GOOG-PROD"},
+                        "contact": {
+                            "kind": "individual",
+                            "name": "MNT-GOOG-PROD",
+                            "address": None,
+                        },
                         "handle": "MNT-GOOG-PROD",
                     },
                     "AR15518-RIPE": {
