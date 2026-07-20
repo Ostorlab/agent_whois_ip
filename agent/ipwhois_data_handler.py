@@ -1,12 +1,18 @@
-"""Helper module for preparing the whois IP messages."""
+"""Helper module for preparing the whois IP and ASN messages."""
 
 import ipaddress
 import logging
 from typing import Any, Dict, Union, Optional, List
 
+import ipwhois
+import ipwhois.asn
+import ipwhois.net
 from ostorlab.agent.message import message as m
 
 logger = logging.getLogger(__name__)
+
+ASN_ORIGIN_LOOKUP_RETRY_COUNT = 2
+ASN_ORIGIN_NET_PLACEHOLDER_HOST = "1.0.0.0"
 
 
 def prepare_whois_message_data(
@@ -87,3 +93,78 @@ def get_ips_from_dns_record_message(
         except ipaddress.AddressValueError as e:
             logger.error("%s", e)
     return ip_addresses
+
+
+def normalize_asn(asn: str) -> str:
+    """Normalize an ASN value to the ``AS<number>`` form expected by whois.
+
+    Args:
+        asn: The ASN, with or without the leading ``AS`` prefix.
+
+    Returns:
+        The normalized ASN string.
+
+    Raises:
+        ValueError: If the ASN does not contain a numeric component.
+    """
+    trimmed = asn.strip()
+    if trimmed.lower().startswith("as"):
+        number_part = trimmed[2:]
+    else:
+        number_part = trimmed
+    if number_part.isnumeric() is False or len(number_part) == 0:
+        raise ValueError(f"Invalid ASN: {asn}")
+    return f"AS{number_part}"
+
+
+def get_networks_for_asn(
+    asn: str,
+) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    """Look up the IPv4 and IPv6 network ranges announced by an ASN.
+
+    Args:
+        asn: The ASN, with or without the leading ``AS`` prefix.
+
+    Returns:
+        Deduplicated list of announced networks, preserving IPv4 and IPv6
+        ranges as returned by the registry.
+    """
+    normalized_asn = normalize_asn(asn)
+    net = ipwhois.net.Net(ASN_ORIGIN_NET_PLACEHOLDER_HOST)
+    record = ipwhois.asn.ASNOrigin(net).lookup(
+        asn=normalized_asn, retry_count=ASN_ORIGIN_LOOKUP_RETRY_COUNT
+    )
+    return _normalize_networks(record.get("nets", []))
+
+
+def _normalize_networks(
+    nets: list[dict[str, Any]],
+) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    """Parse and deduplicate network ranges from ASN origin lookup results.
+
+    Args:
+        nets: Raw network entries returned by the ASN origin lookup.
+
+    Returns:
+        Deduplicated list of parsed networks.
+    """
+    networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
+    seen: set[ipaddress.IPv4Network | ipaddress.IPv6Network] = set()
+    for entry in nets:
+        cidr = entry.get("cidr")
+        if cidr is None:
+            continue
+        for cidr_str in str(cidr).split(","):
+            cidr_str = cidr_str.strip()
+            if len(cidr_str) == 0:
+                continue
+            try:
+                network = ipaddress.ip_network(cidr_str, strict=False)
+            except ValueError:
+                logger.warning("ignoring invalid network range: %s", cidr_str)
+                continue
+            if network in seen:
+                continue
+            seen.add(network)
+            networks.append(network)
+    return networks

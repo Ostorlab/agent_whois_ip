@@ -67,6 +67,12 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         logger.debug("processing message of selector %s", message.selector)
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
+        if message.selector.startswith("v3.asset.ip.asn"):
+            asn = message.data.get("asn")
+            if asn is None:
+                logger.warning("ASN message received without an asn field")
+                return
+            return self._process_asn(str(asn))
         host = message.data.get("host")
         if host is not None:
             return self._process_ip(message, host)
@@ -130,7 +136,14 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     raise ValueError(f"Invalid IP address: {host}")
             if version not in (4, 6):
                 raise ValueError(f"Incorrect ip version {version}.")
-            elif version == 4 and int(mask) < IPV4_CIDR_LIMIT:
+            network = ipaddress.ip_network(f"{host}/{mask}", strict=False)
+            # Check the processed marker before enforcing CIDR limits so that
+            # pre-marked broad discovered ranges (e.g. /8, /37) skip per-address
+            # expansion instead of raising.
+            if self.ip_network_exists("agent_whois_ip_asset", network) is True:
+                logger.info("target %s was processed before, exiting", network)
+                return
+            if version == 4 and int(mask) < IPV4_CIDR_LIMIT:
                 raise ValueError(
                     f"Subnet mask below {IPV4_CIDR_LIMIT} is not supported."
                 )
@@ -138,7 +151,6 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 raise ValueError(
                     f"Subnet mask below {IPV6_CIDR_LIMIT} is not supported."
                 )
-            network = ipaddress.ip_network(f"{host}/{mask}", strict=False)
 
         if self.add_ip_network("agent_whois_ip_asset", network):
             for address in network.hosts():
@@ -166,6 +178,82 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         else:
             logger.info("target %s was processed before, exiting", network)
             return
+
+    def _process_asn(self, asn: str) -> None:
+        """Look up the network ranges announced by an ASN and emit them.
+
+        Args:
+            asn: The ASN, with or without the leading ``AS`` prefix.
+
+        Returns:
+            None
+        """
+        try:
+            normalized_asn = ipwhois_data_handler.normalize_asn(asn)
+        except ValueError:
+            logger.warning("invalid ASN value: %s", asn)
+            return
+        if self.set_add("agent_whois_ip_asn_asset", normalized_asn) is False:
+            logger.info("ASN %s was processed before, exiting", normalized_asn)
+            return
+        logger.info("processing ASN %s", normalized_asn)
+        try:
+            networks = ipwhois_data_handler.get_networks_for_asn(normalized_asn)
+        except (
+            ipwhois.exceptions.ASNOriginLookupError,
+            ipwhois.exceptions.WhoisLookupError,
+            ipwhois.exceptions.WhoisRateLimitError,
+            ipwhois.exceptions.HTTPRateLimitError,
+            ValueError,
+        ):
+            logger.warning(
+                "some data not found when agent_whois_ip_asset try to process ASN %s",
+                normalized_asn,
+            )
+            return
+        except ipwhois.exceptions.NetError:
+            logger.warning("network error when processing ASN %s", normalized_asn)
+            return
+        for network in networks:
+            self._emit_network_message(network)
+
+    def _emit_network_message(
+        self,
+        network: ipaddress.IPv4Network | ipaddress.IPv6Network,
+    ) -> None:
+        """Emit a discovered network range as an IP asset message.
+
+        The network is marked as processed (by exact normalized CIDR) before
+        emission so that a later per-address expansion of the same range is
+        skipped, keeping discovered networks from being enumerated address by
+        address. Deduplication is by exact CIDR, so overlapping prefixes
+        announced by the same ASN (e.g. a /16 and a contained /24) are both
+        emitted rather than collapsed by the supernet-aware persist check.
+
+        The source ASN is not carried on the emitted message because the
+        ``v3.asset.ip.v4`` / ``v3.asset.ip.v6`` protos do not define an asn
+        field. Preserving the ASN -> Network relationship requires the
+        dedicated network output contract, which is a separate related change
+        tracked in the shared message package (out of scope for this repo).
+
+        Args:
+            network: The discovered network range.
+
+        Returns:
+            None
+        """
+        if self.set_add("agent_whois_ip_asset", network.exploded) is False:
+            logger.info("network %s was processed before, skipping", network)
+            return
+        network_message: Dict[str, Any] = {
+            "host": str(network.network_address),
+            "mask": str(network.prefixlen),
+            "version": network.version,
+        }
+        if network.version == 4:
+            self.emit("v3.asset.ip.v4", network_message)
+        elif network.version == 6:
+            self.emit("v3.asset.ip.v6", network_message)
 
     def _emit_whois_message(self, whois_message: Dict[str, Any]) -> None:
         """Emit the whois message depending on the type of host address"""

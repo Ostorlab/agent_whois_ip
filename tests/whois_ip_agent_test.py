@@ -1,5 +1,6 @@
 """Unittests for WhoisIP agent."""
 
+import ipaddress
 from typing import List, Dict
 from unittest import mock
 
@@ -239,6 +240,7 @@ def testAgentWhoisIP_whenRDAPIsDown_shouldRetry(
 
 def testWhoisIP_whenIPv4AssetReachCIDRLimit_raiseValueError(
     test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
     scan_message_ipv4_with_mask8: message.Message,
 ) -> None:
     """Test the CIDR Limit in case IPV4 and the Limit is reached."""
@@ -248,6 +250,7 @@ def testWhoisIP_whenIPv4AssetReachCIDRLimit_raiseValueError(
 
 def testWhoisIP_whenIPv4AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
     test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
     scan_message_ipv4_with_mask16: message.Message,
 ) -> None:
@@ -262,6 +265,7 @@ def testWhoisIP_whenIPv4AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
 
 def testWhoisIP_whenIPv6AssetReachCIDRLimit_raiseValueError(
     test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
     scan_message_ipv6_with_mask64: message.Message,
 ) -> None:
     """Test the CIDR Limit in case IPV6 and the Limit is reached."""
@@ -271,6 +275,7 @@ def testWhoisIP_whenIPv6AssetReachCIDRLimit_raiseValueError(
 
 def testWhoisIP_whenIPv6AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
     test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
     scan_message_ipv6_with_mask112: message.Message,
 ) -> None:
@@ -295,6 +300,7 @@ def testWhoisIP_whenIPAssetHasIncorrectVersion_raiseValueError(
 def testWhoisIP_whenIPHasNoASN_doesNotCrash(
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
     scan_message_global_ipv4_with_mask32: message.Message,
 ) -> None:
@@ -370,3 +376,250 @@ def testWhoisIp_whenASNParseErrorOccure_logWithoutCrash(
 
     assert len(agent_mock) == 0
     assert "ASN parse error for IP" in caplog.text
+
+
+def testAgentWhoisIP_whenASNInput_emitsAnnouncedNetworks(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_asn_origin_lookup: None,
+) -> None:
+    """Test that an ASN input emits the announced IPv4 and IPv6 network ranges."""
+    test_agent.process(scan_message_asn)
+
+    assert len(agent_mock) == 3
+    v4_messages = [m for m in agent_mock if m.selector == "v3.asset.ip.v4"]
+    v6_messages = [m for m in agent_mock if m.selector == "v3.asset.ip.v6"]
+    assert len(v4_messages) == 2
+    assert len(v6_messages) == 1
+    v4_networks = sorted({m.data["host"] + "/" + m.data["mask"] for m in v4_messages})
+    assert v4_networks == ["8.8.4.0/24", "8.8.8.0/24"]
+    assert v6_messages[0].data["host"] == "2a00:1450:4000::"
+    assert v6_messages[0].data["mask"] == "37"
+    assert v6_messages[0].data["version"] == 6
+    assert v4_messages[0].data["version"] == 4
+
+
+def testAgentWhoisIP_whenASNInput_deduplicatesNetworkRanges(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_asn_origin_lookup: None,
+) -> None:
+    """Test that duplicate network ranges announced by an ASN are emitted once."""
+    test_agent.process(scan_message_asn)
+
+    v4_messages = [m for m in agent_mock if m.selector == "v3.asset.ip.v4"]
+    v4_networks = [m.data["host"] + "/" + m.data["mask"] for m in v4_messages]
+    assert v4_networks.count("8.8.8.0/24") == 1
+
+
+def testAgentWhoisIP_whenASNProcessedBefore_doesNotReprocess(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_asn_origin_lookup: None,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that an ASN already processed is not looked up again."""
+    lookup_mock = mocker.patch(
+        "ipwhois.asn.ASNOrigin.lookup",
+        return_value={"query": "AS15169", "nets": [], "raw": None},
+    )
+
+    test_agent.process(scan_message_asn)
+    test_agent.process(scan_message_asn)
+
+    assert lookup_mock.call_count == 1
+
+
+def testAgentWhoisIP_whenASNLookupFails_doesNotCrash(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that an ASN origin lookup failure is logged without crashing."""
+    mocker.patch(
+        "ipwhois.asn.ASNOrigin.lookup",
+        side_effect=ipwhois.exceptions.ASNOriginLookupError,
+    )
+
+    test_agent.process(scan_message_asn)
+
+    assert len(agent_mock) == 0
+    assert "some data not found" in caplog.text
+
+
+def testAgentWhoisIP_whenDiscoveredNetworkReprocessed_doesNotExpandPerAddress(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_asn_origin_lookup: None,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that a discovered network range is not expanded address by address."""
+    whois_lookup = mocker.patch("agent.whois_ip_agent._get_whois_record")
+
+    test_agent.process(scan_message_asn)
+
+    discovered_network_message = next(
+        m for m in agent_mock if m.selector == "v3.asset.ip.v4"
+    )
+    network_input = message.Message.from_data(
+        "v3.asset.ip.v4",
+        data={
+            "host": discovered_network_message.data["host"],
+            "mask": discovered_network_message.data["mask"],
+            "version": 4,
+        },
+    )
+
+    test_agent.process(network_input)
+
+    assert whois_lookup.call_count == 0
+
+
+def testAgentWhoisIP_whenASNMessageHasNoAsn_doesNotCrash(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that an ASN message without an asn field is ignored safely."""
+    lookup_mock = mocker.patch("ipwhois.asn.ASNOrigin.lookup")
+    asn_message = message.Message(
+        selector="v3.asset.ip.asn",
+        data={},
+        raw=b"",
+    )
+
+    test_agent.process(asn_message)
+
+    assert lookup_mock.call_count == 0
+    assert len(agent_mock) == 0
+    assert "without an asn field" in caplog.text
+
+
+def testAgentWhoisIP_whenAsnValueIsInvalid_doesNotCrash(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that an invalid ASN value is ignored without crashing the agent."""
+    lookup_mock = mocker.patch("ipwhois.asn.ASNOrigin.lookup")
+    asn_message = message.Message(
+        selector="v3.asset.ip.asn",
+        data={"asn": "ASGOOGLE"},
+        raw=b"",
+    )
+
+    test_agent.process(asn_message)
+
+    assert lookup_mock.call_count == 0
+    assert len(agent_mock) == 0
+    assert "invalid ASN value" in caplog.text
+
+
+def testAgentWhoisIP_whenAsnArrivesInDifferentFormats_deduplicatesByNormalizedValue(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that the same ASN in different formats is looked up only once."""
+    lookup_mock = mocker.patch(
+        "ipwhois.asn.ASNOrigin.lookup",
+        return_value={"query": "AS15169", "nets": [], "raw": None},
+    )
+    bare_asn_message = message.Message(
+        selector="v3.asset.ip.asn",
+        data={"asn": "15169"},
+        raw=b"",
+    )
+
+    test_agent.process(scan_message_asn)
+    test_agent.process(bare_asn_message)
+
+    assert lookup_mock.call_count == 1
+
+
+def testAgentWhoisIP_whenOverlappingPrefixesAnnounced_emitsBothRanges(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that overlapping prefixes (supernet and contained subnet) are both emitted."""
+    lookup_record = {
+        "query": "AS15169",
+        "nets": [
+            {"cidr": "8.8.0.0/16"},
+            {"cidr": "8.8.8.0/24"},
+        ],
+        "raw": None,
+    }
+    mocker.patch("ipwhois.asn.ASNOrigin.lookup", return_value=lookup_record)
+    asn_message = message.Message(
+        selector="v3.asset.ip.asn",
+        data={"asn": "AS15169"},
+        raw=b"",
+    )
+
+    test_agent.process(asn_message)
+
+    v4_messages = [m for m in agent_mock if m.selector == "v3.asset.ip.v4"]
+    v4_networks = sorted(m.data["host"] + "/" + m.data["mask"] for m in v4_messages)
+    assert v4_networks == ["8.8.0.0/16", "8.8.8.0/24"]
+
+
+def testAgentWhoisIP_whenDiscoveredBroadV4RangeReprocessed_doesNotRaise(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that a pre-marked broad IPv4 range skips instead of raising a ValueError."""
+    broad_network = ipaddress.ip_network("8.0.0.0/8")
+    test_agent.set_add("agent_whois_ip_asset", broad_network.exploded)
+    whois_lookup = mocker.patch("agent.whois_ip_agent._get_whois_record")
+    broad_message = message.Message.from_data(
+        "v3.asset.ip.v4",
+        data={"host": "8.0.0.0", "mask": "8", "version": 4},
+    )
+
+    test_agent.process(broad_message)
+
+    assert whois_lookup.call_count == 0
+    assert len(agent_mock) == 0
+
+
+def testAgentWhoisIP_whenDiscoveredBroadV6RangeReprocessed_doesNotRaise(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: List[message.Message],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that a pre-marked broad IPv6 range skips instead of raising a ValueError."""
+    broad_network = ipaddress.ip_network("2a00:1450:4000::/37")
+    test_agent.set_add("agent_whois_ip_asset", broad_network.exploded)
+    whois_lookup = mocker.patch("agent.whois_ip_agent._get_whois_record")
+    broad_message = message.Message.from_data(
+        "v3.asset.ip.v6",
+        data={"host": "2a00:1450:4000::", "mask": "37", "version": 6},
+    )
+
+    test_agent.process(broad_message)
+
+    assert whois_lookup.call_count == 0
+    assert len(agent_mock) == 0

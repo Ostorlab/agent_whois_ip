@@ -176,6 +176,39 @@ def scan_message_global_ipv4_with_mask32() -> message.Message:
 
 
 @pytest.fixture
+def scan_message_asn() -> message.Message:
+    """Creates a dummy message of an ASN asset.
+
+    The shared ``v3.asset.ip.asn`` message proto is added separately, so the
+    message is built directly to avoid relying on a registered proto.
+    """
+    return message.Message(
+        selector="v3.asset.ip.asn",
+        data={"asn": "AS15169"},
+        raw=b"",
+    )
+
+
+@pytest.fixture
+def mock_asn_origin_lookup(mocker: Any) -> None:
+    """Mocks the ipwhois ASN origin lookup to avoid live network requests."""
+
+    def _mock_lookup(asn: str, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        return {
+            "query": asn,
+            "nets": [
+                {"cidr": "8.8.8.0/24", "start": 0, "end": 10},
+                {"cidr": "8.8.4.0/24", "start": 11, "end": 21},
+                {"cidr": "8.8.8.0/24", "start": 22, "end": 32},
+                {"cidr": "2a00:1450:4000::/37", "start": 33, "end": 50},
+            ],
+            "raw": None,
+        }
+
+    mocker.patch("ipwhois.asn.ASNOrigin.lookup", side_effect=_mock_lookup)
+
+
+@pytest.fixture
 def mock_whois_lookup(mocker: Any) -> None:
     """Mocks the rdap lookup to avoid live network requests."""
 
