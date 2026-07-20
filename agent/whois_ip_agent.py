@@ -67,6 +67,12 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         logger.debug("processing message of selector %s", message.selector)
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
+        if message.selector.startswith("v3.asset.ip.asn"):
+            asn = message.data.get("asn")
+            if asn is None:
+                logger.warning("ASN message received without an asn field")
+                return
+            return self._process_asn(str(asn))
         host = message.data.get("host")
         if host is not None:
             return self._process_ip(message, host)
@@ -166,6 +172,66 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         else:
             logger.info("target %s was processed before, exiting", network)
             return
+
+    def _process_asn(self, asn: str) -> None:
+        """Look up the network ranges announced by an ASN and emit them.
+
+        Args:
+            asn: The ASN, with or without the leading ``AS`` prefix.
+
+        Returns:
+            None
+        """
+        if self.set_add("agent_whois_ip_asn_asset", asn) is False:
+            logger.info("ASN %s was processed before, exiting", asn)
+            return
+        logger.info("processing ASN %s", asn)
+        try:
+            networks = ipwhois_data_handler.get_networks_for_asn(asn)
+        except (
+            ipwhois.exceptions.ASNOriginLookupError,
+            ipwhois.exceptions.WhoisLookupError,
+            ipwhois.exceptions.WhoisRateLimitError,
+            ipwhois.exceptions.HTTPRateLimitError,
+        ):
+            logger.warning(
+                "some data not found when agent_whois_ip_asset try to process ASN %s",
+                asn,
+            )
+            return
+        except ipwhois.exceptions.NetError:
+            logger.warning("network error when processing ASN %s", asn)
+            return
+        for network in networks:
+            self._emit_network_message(network)
+
+    def _emit_network_message(
+        self, network: ipaddress.IPv4Network | ipaddress.IPv6Network
+    ) -> None:
+        """Emit a discovered network range as an IP asset message.
+
+        The network is marked as processed before emission so that a later
+        per-address expansion of the same range is skipped, keeping
+        discovered networks from being enumerated address by address.
+
+        Args:
+            network: The discovered network range.
+
+        Returns:
+            None
+        """
+        if self.add_ip_network("agent_whois_ip_asset", network) is False:
+            logger.info("network %s was processed before, skipping", network)
+            return
+        network_message: Dict[str, Any] = {
+            "host": str(network.network_address),
+            "mask": str(network.prefixlen),
+            "version": network.version,
+        }
+        if network.version == 4:
+            self.emit("v3.asset.ip.v4", network_message)
+        elif network.version == 6:
+            self.emit("v3.asset.ip.v6", network_message)
 
     def _emit_whois_message(self, whois_message: Dict[str, Any]) -> None:
         """Emit the whois message depending on the type of host address"""
