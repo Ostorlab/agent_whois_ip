@@ -209,14 +209,24 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             ipwhois_data_handler.RipeLookupError,
             ValueError,
         ):
-            self.delete(claim_key)
             logger.warning(
                 "some data not found when agent_whois_ip_asset try to process ASN %s",
                 normalized_asn,
             )
+            try:
+                self.delete(claim_key)
+            except Exception:
+                logger.exception("failed to release ASN claim %s", claim_key)
             return
         except Exception:
-            self.delete(claim_key)
+            logger.exception(
+                "unexpected error processing ASN %s, releasing claim",
+                normalized_asn,
+            )
+            try:
+                self.delete(claim_key)
+            except Exception:
+                logger.exception("failed to release ASN claim %s", claim_key)
             raise
 
     def _emit_network_message(

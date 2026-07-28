@@ -493,6 +493,62 @@ def testAgentWhoisIP_whenWhoisAsnLookupFails_remainsRetryable(
     assert "some data not found" in caplog.text
 
 
+def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_propagatesOriginal(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    emit_calls: list[dict[str, Any]],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that an unexpected error is propagated even if releasing the claim fails."""
+    del emit_calls, agent_persist_mock
+
+    original_error = RuntimeError("boom")
+
+    def _raise_unexpected(resource: str) -> list[str]:
+        del resource
+        raise original_error
+
+    mocker.patch(
+        "agent.ipwhois_data_handler._fetch_ripe_prefixes",
+        side_effect=_raise_unexpected,
+    )
+    mocker.patch.object(
+        whois_ip_agent.WhoisIPAgent,
+        "delete",
+        side_effect=RuntimeError("redis down"),
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        test_agent.process(scan_message_asn)
+
+    assert "unexpected error processing ASN" in caplog.text
+    assert "failed to release ASN claim" in caplog.text
+
+
+def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndReraises(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    emit_calls: list[dict[str, Any]],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that an unexpected error releases the ASN claim so it stays retryable."""
+    del emit_calls
+    fetch_mock = mocker.patch(
+        "agent.ipwhois_data_handler._fetch_ripe_prefixes",
+        side_effect=RuntimeError("unexpected"),
+    )
+    delete_mock = mocker.patch.object(whois_ip_agent.WhoisIPAgent, "delete")
+
+    with pytest.raises(RuntimeError, match="unexpected"):
+        test_agent.process(scan_message_asn)
+
+    assert fetch_mock.call_count == 1
+    assert delete_mock.call_count == 1
+
+
 def testAgentWhoisIP_whenWhoisAsnProcessed_doesNotEnumerateAddresses(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
