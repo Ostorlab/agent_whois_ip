@@ -177,10 +177,10 @@ def scan_message_global_ipv4_with_mask32() -> message.Message:
 
 @pytest.fixture
 def scan_message_asn() -> message.Message:
-    """Creates a dummy message of the existing ASN asset type."""
+    """Creates a dummy IPv4 WHOIS message containing an ASN."""
     return message.Message(
-        selector="v3.asset.ip.asn",
-        data={"asn": "AS15169"},
+        selector="v3.asset.ip.v4.whois",
+        data={"asn_number": 15169},
         raw=b"",
     )
 
@@ -293,12 +293,7 @@ def mock_whois_lookup(mocker: Any) -> None:
 def emit_calls(
     mocker: Any, test_agent: whois_ip_agent.WhoisIPAgent
 ) -> list[dict[str, Any]]:
-    """Records calls to ``emit`` without serializing against a registered proto.
-
-    The ``v3.asset.network`` message contract is added in the shared message
-    package as a related change, so emission is captured directly to keep the
-    agent tests independent of an unreleased proto.
-    """
+    """Records emitted network messages without serializing them."""
     calls: list[dict[str, Any]] = []
 
     def _record(

@@ -56,10 +56,10 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         self._scope_domain_regex: str | None = self.args.get("scope_domain_regex")
 
     def process(self, message: m.Message) -> None:
-        """Process DNS records and IP assets to emit whois record.
+        """Process DNS records, IP assets, and WHOIS results.
 
         Args:
-            message: DNS record, IP asset, or ASN asset message.
+            message: DNS record, IP asset, or IP WHOIS message.
 
         Returns:
             None
@@ -67,10 +67,13 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         logger.debug("processing message of selector %s", message.selector)
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
-        if message.selector.startswith("v3.asset.ip.asn"):
-            asn = message.data.get("asn")
+        if message.selector in (
+            "v3.asset.ip.v4.whois",
+            "v3.asset.ip.v6.whois",
+        ):
+            asn = message.data.get("asn_number")
             if asn is None:
-                logger.warning("ASN message received without an asn field")
+                logger.warning("WHOIS message received without an asn_number field")
                 return
             return self._process_asn(str(asn))
         host = message.data.get("host")
@@ -223,9 +226,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         """Emit a discovered network range as a ``v3.asset.network`` message.
 
         Duplicate CIDRs (e.g. announced by several ASNs) are emitted once by
-        marking the exact CIDR as processed before emission. ASN-discovered
-        ranges are never emitted as ordinary IP asset messages and are not
-        enumerated address by address.
+        marking the exact CIDR as processed before emission. Each range uses one
+        network IP entry with its prefix length; addresses are not enumerated.
 
         Args:
             network: The discovered network range.
@@ -237,7 +239,18 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         if self.set_add("agent_whois_ip_network_asset", cidr) is False:
             logger.info("network %s was processed before, skipping", cidr)
             return
-        self.emit("v3.asset.network", {"cidr": cidr})
+        self.emit(
+            "v3.asset.network",
+            {
+                "ips": [
+                    {
+                        "host": str(network.network_address),
+                        "mask": str(network.prefixlen),
+                        "version": network.version,
+                    }
+                ]
+            },
+        )
 
     def _emit_whois_message(self, whois_message: Dict[str, Any]) -> None:
         """Emit the whois message depending on the type of host address"""

@@ -11,6 +11,12 @@ from pytest_mock import plugin
 from agent import ipwhois_data_handler, whois_ip_agent
 
 
+def _emitted_network_cidr(call: dict[str, Any]) -> str:
+    """Return the CIDR represented by one emitted network message."""
+    network_ip = call["data"]["ips"][0]
+    return f"{network_ip['host']}/{network_ip['mask']}"
+
+
 def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
     scan_message_ipv4: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
@@ -377,43 +383,45 @@ def testWhoisIp_whenASNParseErrorOccure_logWithoutCrash(
     assert "ASN parse error for IP" in caplog.text
 
 
-def testAgentWhoisIP_whenASNInput_emitsAnnouncedNetworks(
+def testAgentWhoisIP_whenWhoisMessageHasAsn_emitsAnnouncedNetworks(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: Dict[str | bytes, str | bytes],
     mock_ripe_prefixes: None,
 ) -> None:
-    """Test that an ASN input emits the announced IPv4 and IPv6 network ranges."""
+    """Test that a WHOIS ASN emits the announced IPv4 and IPv6 ranges."""
     del agent_persist_mock
     test_agent.process(scan_message_asn)
 
     network_messages = [c for c in emit_calls if c["selector"] == "v3.asset.network"]
     assert len(network_messages) == 3
-    cidrs = sorted(c["data"]["cidr"] for c in network_messages)
+    cidrs = sorted(_emitted_network_cidr(c) for c in network_messages)
     assert cidrs == ["2a00:1450:4000::/37", "8.8.4.0/24", "8.8.8.0/24"]
-    assert all(c["data"] == {"cidr": c["data"]["cidr"]} for c in network_messages)
+    assert all(len(c["data"]["ips"]) == 1 for c in network_messages)
     assert not any(c["selector"].startswith("v3.asset.ip") for c in emit_calls)
 
 
-def testAgentWhoisIP_whenASNInput_deduplicatesNetworkRanges(
+def testAgentWhoisIP_whenWhoisMessageHasAsn_deduplicatesNetworkRanges(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: Dict[str | bytes, str | bytes],
     mock_ripe_prefixes: None,
 ) -> None:
-    """Test that duplicate network ranges announced by an ASN are emitted once."""
+    """Test that duplicate network ranges announced by a WHOIS ASN emit once."""
     del agent_persist_mock
     test_agent.process(scan_message_asn)
 
     cidrs = [
-        c["data"]["cidr"] for c in emit_calls if c["selector"] == "v3.asset.network"
+        _emitted_network_cidr(c)
+        for c in emit_calls
+        if c["selector"] == "v3.asset.network"
     ]
     assert cidrs.count("8.8.8.0/24") == 1
 
 
-def testAgentWhoisIP_whenASNProcessedBefore_doesNotReprocess(
+def testAgentWhoisIP_whenWhoisAsnProcessedBefore_doesNotReprocess(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
@@ -432,7 +440,7 @@ def testAgentWhoisIP_whenASNProcessedBefore_doesNotReprocess(
     assert fetch_mock.call_count == 1
 
 
-def testAgentWhoisIP_whenASNProcessedConcurrently_claimPreventsDuplicateLookup(
+def testAgentWhoisIP_whenWhoisAsnProcessedConcurrently_claimPreventsDuplicateLookup(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
@@ -460,7 +468,7 @@ def testAgentWhoisIP_whenASNProcessedConcurrently_claimPreventsDuplicateLookup(
     assert fetch_mock.call_count == 1
 
 
-def testAgentWhoisIP_whenASNLookupFails_remainsRetryable(
+def testAgentWhoisIP_whenWhoisAsnLookupFails_remainsRetryable(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
@@ -484,7 +492,7 @@ def testAgentWhoisIP_whenASNLookupFails_remainsRetryable(
     assert "some data not found" in caplog.text
 
 
-def testAgentWhoisIP_whenASNProcessed_doesNotEnumerateAddresses(
+def testAgentWhoisIP_whenWhoisAsnProcessed_doesNotEnumerateAddresses(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
@@ -502,18 +510,18 @@ def testAgentWhoisIP_whenASNProcessed_doesNotEnumerateAddresses(
     assert all(c["selector"] == "v3.asset.network" for c in emit_calls)
 
 
-def testAgentWhoisIP_whenASNMessageHasNoAsn_doesNotCrash(
+def testAgentWhoisIP_whenWhoisMessageHasNoAsnNumber_doesNotCrash(
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test that an ASN message without an asn field is ignored safely."""
+    """Test that a WHOIS message without an ASN is ignored safely."""
     del agent_persist_mock
     fetch_mock = mocker.patch("agent.ipwhois_data_handler._fetch_ripe_prefixes")
     asn_message = message.Message(
-        selector="v3.asset.ip.asn",
+        selector="v3.asset.ip.v4.whois",
         data={},
         raw=b"",
     )
@@ -522,22 +530,22 @@ def testAgentWhoisIP_whenASNMessageHasNoAsn_doesNotCrash(
 
     assert fetch_mock.call_count == 0
     assert len(emit_calls) == 0
-    assert "without an asn field" in caplog.text
+    assert "without an asn_number field" in caplog.text
 
 
-def testAgentWhoisIP_whenAsnValueIsInvalid_doesNotCrash(
+def testAgentWhoisIP_whenWhoisAsnValueIsInvalid_doesNotCrash(
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test that an invalid ASN value is ignored without crashing the agent."""
+    """Test that an invalid WHOIS ASN is ignored without crashing the agent."""
     del agent_persist_mock
     fetch_mock = mocker.patch("agent.ipwhois_data_handler._fetch_ripe_prefixes")
     asn_message = message.Message(
-        selector="v3.asset.ip.asn",
-        data={"asn": "ASGOOGLE"},
+        selector="v3.asset.ip.v4.whois",
+        data={"asn_number": "ASGOOGLE"},
         raw=b"",
     )
 
@@ -548,21 +556,21 @@ def testAgentWhoisIP_whenAsnValueIsInvalid_doesNotCrash(
     assert "invalid ASN value" in caplog.text
 
 
-def testAgentWhoisIP_whenAsnArrivesInDifferentFormats_deduplicatesByNormalizedValue(
+def testAgentWhoisIP_whenWhoisMessagesShareAsn_deduplicatesLookup(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
-    """Test that the same ASN in different formats is looked up only once."""
+    """Test that two WHOIS messages with one ASN trigger one lookup."""
     del emit_calls
     fetch_mock = mocker.patch(
         "agent.ipwhois_data_handler._fetch_ripe_prefixes", return_value=[]
     )
     bare_asn_message = message.Message(
-        selector="v3.asset.ip.asn",
-        data={"asn": "15169"},
+        selector="v3.asset.ip.v6.whois",
+        data={"asn_number": 15169},
         raw=b"",
     )
 
@@ -585,15 +593,17 @@ def testAgentWhoisIP_whenOverlappingPrefixesAnnounced_emitsBothRanges(
         return_value=["8.8.0.0/16", "8.8.8.0/24"],
     )
     asn_message = message.Message(
-        selector="v3.asset.ip.asn",
-        data={"asn": "AS15169"},
+        selector="v3.asset.ip.v4.whois",
+        data={"asn_number": 15169},
         raw=b"",
     )
 
     test_agent.process(asn_message)
 
     cidrs = sorted(
-        c["data"]["cidr"] for c in emit_calls if c["selector"] == "v3.asset.network"
+        _emitted_network_cidr(c)
+        for c in emit_calls
+        if c["selector"] == "v3.asset.network"
     )
     assert cidrs == ["8.8.0.0/16", "8.8.8.0/24"]
 
@@ -611,10 +621,10 @@ def testAgentWhoisIP_whenDuplicateCidrAcrossAsns_emittedOnce(
         return_value=["8.8.8.0/24"],
     )
     first_asn = message.Message(
-        selector="v3.asset.ip.asn", data={"asn": "AS15169"}, raw=b""
+        selector="v3.asset.ip.v4.whois", data={"asn_number": 15169}, raw=b""
     )
     second_asn = message.Message(
-        selector="v3.asset.ip.asn", data={"asn": "AS15170"}, raw=b""
+        selector="v3.asset.ip.v4.whois", data={"asn_number": 15170}, raw=b""
     )
 
     test_agent.process(first_asn)
@@ -622,6 +632,8 @@ def testAgentWhoisIP_whenDuplicateCidrAcrossAsns_emittedOnce(
 
     assert fetch_mock.call_count == 2
     cidrs = [
-        c["data"]["cidr"] for c in emit_calls if c["selector"] == "v3.asset.network"
+        _emitted_network_cidr(c)
+        for c in emit_calls
+        if c["selector"] == "v3.asset.network"
     ]
     assert cidrs == ["8.8.8.0/24"]
