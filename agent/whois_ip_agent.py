@@ -178,9 +178,9 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
 
         The ASN is normalized and, if already processed, skipped. The announced
         prefixes are fetched from the public RIPE announced-prefixes API and
-        emitted as ``v3.asset.network`` messages. The ASN is marked as
-        processed only after the lookup and emission succeed, so a lookup
-        failure remains retryable.
+        emitted as ``v3.asset.network`` messages. An atomic claim prevents
+        concurrent workers from processing the same ASN, and the claim is
+        released if lookup or emission fails so the message remains retryable.
 
         Args:
             asn: The ASN, with or without the leading ``AS`` prefix.
@@ -193,24 +193,28 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         except ValueError:
             logger.warning("invalid ASN value: %s", asn)
             return
-        if self.set_is_member("agent_whois_ip_asn_asset", normalized_asn) is True:
+        claim_key = f"agent_whois_ip_asn_asset:{normalized_asn}"
+        if self.set_add(claim_key, normalized_asn) is False:
             logger.info("ASN %s was processed before, exiting", normalized_asn)
             return
         logger.info("processing ASN %s", normalized_asn)
         try:
             networks = ipwhois_data_handler.get_networks_for_asn(normalized_asn)
+            for network in networks:
+                self._emit_network_message(network)
         except (
             ipwhois_data_handler.RipeLookupError,
             ValueError,
         ):
+            self.delete(claim_key)
             logger.warning(
                 "some data not found when agent_whois_ip_asset try to process ASN %s",
                 normalized_asn,
             )
             return
-        for network in networks:
-            self._emit_network_message(network)
-        self.set_add("agent_whois_ip_asn_asset", normalized_asn)
+        except Exception:
+            self.delete(claim_key)
+            raise
 
     def _emit_network_message(
         self,

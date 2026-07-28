@@ -163,7 +163,10 @@ def _fetch_ripe_prefixes(resource: str) -> list[str]:
         raise RipeLookupError(f"RIPE lookup failed for {resource}") from e
     if payload.get("status") != "ok":
         raise RipeLookupError(f"RIPE lookup returned status {payload.get('status')!r}")
-    prefixes = payload.get("data", {}).get("prefixes", []) or []
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise RipeLookupError("RIPE lookup returned invalid data")
+    prefixes = data.get("prefixes") or []
     return [str(p["prefix"]) for p in prefixes if p.get("prefix")]
 
 

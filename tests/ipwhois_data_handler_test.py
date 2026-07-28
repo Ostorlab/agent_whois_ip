@@ -143,6 +143,19 @@ def testFetchRipePrefixes_whenStatusNotOk_raisesRipeLookupError(
         ipwhois_data_handler._fetch_ripe_prefixes("AS268302")
 
 
+def testFetchRipePrefixes_whenDataIsNull_raisesRipeLookupError(
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that a null data field raises a controlled lookup error."""
+    response = BytesIO(json.dumps({"status": "ok", "data": None}).encode("utf-8"))
+    response_ctx = mock.MagicMock()
+    response_ctx.__enter__.return_value = response
+    mocker.patch("urllib.request.urlopen", return_value=response_ctx)
+
+    with pytest.raises(ipwhois_data_handler.RipeLookupError):
+        ipwhois_data_handler._fetch_ripe_prefixes("AS268302")
+
+
 def testFetchRipePrefixes_whenNetworkError_raisesRipeLookupError(
     mocker: plugin.MockerFixture,
 ) -> None:

@@ -432,6 +432,34 @@ def testAgentWhoisIP_whenASNProcessedBefore_doesNotReprocess(
     assert fetch_mock.call_count == 1
 
 
+def testAgentWhoisIP_whenASNProcessedConcurrently_claimPreventsDuplicateLookup(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    emit_calls: list[dict[str, Any]],
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that an in-flight ASN claim prevents a duplicate lookup."""
+    del emit_calls, agent_persist_mock
+    first_lookup_started = False
+
+    def _fetch(resource: str) -> list[str]:
+        nonlocal first_lookup_started
+        assert resource == "AS15169"
+        if first_lookup_started is False:
+            first_lookup_started = True
+            test_agent.process(scan_message_asn)
+        return []
+
+    fetch_mock = mocker.patch(
+        "agent.ipwhois_data_handler._fetch_ripe_prefixes", side_effect=_fetch
+    )
+
+    test_agent.process(scan_message_asn)
+
+    assert fetch_mock.call_count == 1
+
+
 def testAgentWhoisIP_whenASNLookupFails_remainsRetryable(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
