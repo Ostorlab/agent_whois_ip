@@ -549,6 +549,34 @@ def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndReraises(
     assert delete_mock.call_count == 1
 
 
+def testAgentWhoisIP_whenNetworkEmitFails_logsAndReleasesAsnClaim(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mock_ripe_prefixes: None,
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that an emit failure is logged and propagated while the ASN stays retryable."""
+
+    def _raise_on_emit(
+        selector: str,
+        data: dict[str, Any],
+        message_id: str | None = None,
+        message_priority: int | None = None,
+    ) -> None:
+        raise RuntimeError("bus down")
+
+    mocker.patch.object(test_agent, "emit", side_effect=_raise_on_emit)
+
+    with pytest.raises(RuntimeError, match="bus down"):
+        test_agent.process(scan_message_asn)
+
+    assert "failed to emit network" in caplog.text
+    assert "unexpected error processing ASN" in caplog.text
+    assert "agent_whois_ip_asn_asset:AS15169" not in agent_persist_mock
+
+
 def testAgentWhoisIP_whenWhoisAsnProcessed_doesNotEnumerateAddresses(
     scan_message_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,

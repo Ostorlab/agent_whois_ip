@@ -249,18 +249,25 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         if self.set_add("agent_whois_ip_network_asset", cidr) is False:
             logger.info("network %s was processed before, skipping", cidr)
             return
-        self.emit(
-            "v3.asset.network",
-            {
-                "ips": [
-                    {
-                        "host": str(network.network_address),
-                        "mask": str(network.prefixlen),
-                        "version": network.version,
-                    }
-                ]
-            },
-        )
+        try:
+            self.emit(
+                "v3.asset.network",
+                {
+                    "ips": [
+                        {
+                            "host": str(network.network_address),
+                            "mask": str(network.prefixlen),
+                            "version": network.version,
+                        }
+                    ]
+                },
+            )
+        except Exception:
+            logger.exception(
+                "failed to emit network %s, CIDR was marked but message was not sent",
+                cidr,
+            )
+            raise
 
     def _emit_whois_message(self, whois_message: Dict[str, Any]) -> None:
         """Emit the whois message depending on the type of host address"""
