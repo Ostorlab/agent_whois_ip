@@ -135,7 +135,7 @@ def normalize_asn(asn: str) -> str:
     retry=tenacity.retry_if_exception_type(RipeLookupError),
     reraise=True,
 )
-def _fetch_ripe_prefixes(resource: str) -> List[str]:
+def _fetch_ripe_prefixes(resource: str) -> list[str]:
     """Fetch the announced prefixes for a resource from the RIPE stat API.
 
     The public RIPE announced-prefixes data endpoint is queried without
