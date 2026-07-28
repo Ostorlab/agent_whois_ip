@@ -179,33 +179,31 @@ def scan_message_global_ipv4_with_mask32() -> message.Message:
 def scan_message_asn() -> message.Message:
     """Creates a dummy message of an ASN asset.
 
-    The shared ``v3.asset.ip.asn`` message proto is added separately, so the
+    The shared ``v3.asset.asn`` message proto is added separately, so the
     message is built directly to avoid relying on a registered proto.
     """
     return message.Message(
-        selector="v3.asset.ip.asn",
+        selector="v3.asset.asn",
         data={"asn": "AS15169"},
         raw=b"",
     )
 
 
 @pytest.fixture
-def mock_asn_origin_lookup(mocker: Any) -> None:
-    """Mocks the ipwhois ASN origin lookup to avoid live network requests."""
+def mock_ripe_prefixes(mocker: Any) -> None:
+    """Mocks the RIPE announced-prefixes lookup to avoid live network requests."""
 
-    def _mock_lookup(asn: str, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-        return {
-            "query": asn,
-            "nets": [
-                {"cidr": "8.8.8.0/24", "start": 0, "end": 10},
-                {"cidr": "8.8.4.0/24", "start": 11, "end": 21},
-                {"cidr": "8.8.8.0/24", "start": 22, "end": 32},
-                {"cidr": "2a00:1450:4000::/37", "start": 33, "end": 50},
-            ],
-            "raw": None,
-        }
+    def _mock_fetch(resource: str, *args: Any, **kwargs: Any) -> list[str]:
+        return [
+            "8.8.8.0/24",
+            "8.8.4.0/24",
+            "8.8.8.0/24",
+            "2a00:1450:4000::/37",
+        ]
 
-    mocker.patch("ipwhois.asn.ASNOrigin.lookup", side_effect=_mock_lookup)
+    mocker.patch(
+        "agent.ipwhois_data_handler._fetch_ripe_prefixes", side_effect=_mock_fetch
+    )
 
 
 @pytest.fixture
@@ -293,3 +291,27 @@ def mock_whois_lookup(mocker: Any) -> None:
     mocker.patch(
         "agent.whois_ip_agent._get_whois_record", side_effect=_mock_get_whois_record
     )
+
+
+@pytest.fixture
+def emit_calls(
+    mocker: Any, test_agent: whois_ip_agent.WhoisIPAgent
+) -> list[dict[str, Any]]:
+    """Records calls to ``emit`` without serializing against a registered proto.
+
+    The ``v3.asset.network`` message contract is added in the shared message
+    package as a related change, so emission is captured directly to keep the
+    agent tests independent of an unreleased proto.
+    """
+    calls: list[dict[str, Any]] = []
+
+    def _record(
+        selector: str,
+        data: dict[str, Any],
+        message_id: str | None = None,
+        message_priority: int | None = None,
+    ) -> None:
+        calls.append({"selector": selector, "data": dict(data)})
+
+    mocker.patch.object(test_agent, "emit", side_effect=_record)
+    return calls

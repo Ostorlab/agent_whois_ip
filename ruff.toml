@@ -1,1 +1,6 @@
-#This file will be used if we want to customize the Ruff configuration.
+# This file is used to customize the Ruff configuration.
+# ruff 0.16 expanded its default rule set from 59 to 413 rules, which flags
+# pre-existing style across the repo unrelated to individual changes. Pin the
+# prior default rule set to keep CI stable without forcing repo-wide churn.
+[lint]
+select = ["E4", "E7", "E9", "F"]
