@@ -177,13 +177,9 @@ def scan_message_global_ipv4_with_mask32() -> message.Message:
 
 @pytest.fixture
 def scan_message_asn() -> message.Message:
-    """Creates a dummy message of an ASN asset.
-
-    The shared ``v3.asset.asn`` message proto is added separately, so the
-    message is built directly to avoid relying on a registered proto.
-    """
+    """Creates a dummy message of the existing ASN asset type."""
     return message.Message(
-        selector="v3.asset.asn",
+        selector="v3.asset.ip.asn",
         data={"asn": "AS15169"},
         raw=b"",
     )

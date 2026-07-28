@@ -161,13 +161,19 @@ def _fetch_ripe_prefixes(resource: str) -> list[str]:
             payload = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, ValueError) as e:
         raise RipeLookupError(f"RIPE lookup failed for {resource}") from e
+    if not isinstance(payload, dict):
+        raise RipeLookupError("RIPE lookup returned invalid payload")
     if payload.get("status") != "ok":
         raise RipeLookupError(f"RIPE lookup returned status {payload.get('status')!r}")
     data = payload.get("data")
     if not isinstance(data, dict):
         raise RipeLookupError("RIPE lookup returned invalid data")
     prefixes = data.get("prefixes") or []
-    return [str(p["prefix"]) for p in prefixes if p.get("prefix")]
+    return [
+        str(prefix["prefix"])
+        for prefix in prefixes
+        if isinstance(prefix, dict) and prefix.get("prefix")
+    ]
 
 
 def get_networks_for_asn(

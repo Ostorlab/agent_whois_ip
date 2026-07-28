@@ -67,7 +67,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         logger.debug("processing message of selector %s", message.selector)
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
-        if message.selector.startswith("v3.asset.asn"):
+        if message.selector.startswith("v3.asset.ip.asn"):
             asn = message.data.get("asn")
             if asn is None:
                 logger.warning("ASN message received without an asn field")

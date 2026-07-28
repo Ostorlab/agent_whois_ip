@@ -513,7 +513,7 @@ def testAgentWhoisIP_whenASNMessageHasNoAsn_doesNotCrash(
     del agent_persist_mock
     fetch_mock = mocker.patch("agent.ipwhois_data_handler._fetch_ripe_prefixes")
     asn_message = message.Message(
-        selector="v3.asset.asn",
+        selector="v3.asset.ip.asn",
         data={},
         raw=b"",
     )
@@ -536,7 +536,7 @@ def testAgentWhoisIP_whenAsnValueIsInvalid_doesNotCrash(
     del agent_persist_mock
     fetch_mock = mocker.patch("agent.ipwhois_data_handler._fetch_ripe_prefixes")
     asn_message = message.Message(
-        selector="v3.asset.asn",
+        selector="v3.asset.ip.asn",
         data={"asn": "ASGOOGLE"},
         raw=b"",
     )
@@ -561,7 +561,7 @@ def testAgentWhoisIP_whenAsnArrivesInDifferentFormats_deduplicatesByNormalizedVa
         "agent.ipwhois_data_handler._fetch_ripe_prefixes", return_value=[]
     )
     bare_asn_message = message.Message(
-        selector="v3.asset.asn",
+        selector="v3.asset.ip.asn",
         data={"asn": "15169"},
         raw=b"",
     )
@@ -585,7 +585,7 @@ def testAgentWhoisIP_whenOverlappingPrefixesAnnounced_emitsBothRanges(
         return_value=["8.8.0.0/16", "8.8.8.0/24"],
     )
     asn_message = message.Message(
-        selector="v3.asset.asn",
+        selector="v3.asset.ip.asn",
         data={"asn": "AS15169"},
         raw=b"",
     )
@@ -611,10 +611,10 @@ def testAgentWhoisIP_whenDuplicateCidrAcrossAsns_emittedOnce(
         return_value=["8.8.8.0/24"],
     )
     first_asn = message.Message(
-        selector="v3.asset.asn", data={"asn": "AS15169"}, raw=b""
+        selector="v3.asset.ip.asn", data={"asn": "AS15169"}, raw=b""
     )
     second_asn = message.Message(
-        selector="v3.asset.asn", data={"asn": "AS15170"}, raw=b""
+        selector="v3.asset.ip.asn", data={"asn": "AS15170"}, raw=b""
     )
 
     test_agent.process(first_asn)
