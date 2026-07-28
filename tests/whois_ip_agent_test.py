@@ -8,7 +8,7 @@ import pytest
 from ostorlab.agent.message import message
 from pytest_mock import plugin
 
-from agent import whois_ip_agent
+from agent import ipwhois_data_handler, whois_ip_agent
 
 
 def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
@@ -442,7 +442,6 @@ def testAgentWhoisIP_whenASNLookupFails_remainsRetryable(
 ) -> None:
     """Test that a failed ASN lookup is not marked processed and can be retried."""
     del agent_persist_mock
-    from agent import ipwhois_data_handler
 
     fetch_mock = mocker.patch(
         "agent.ipwhois_data_handler._fetch_ripe_prefixes",
