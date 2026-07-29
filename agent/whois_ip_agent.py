@@ -127,6 +127,10 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     logger.warning(
                         "some data not found when agent_whois_ip_asset try to process IP "
                     )
+                except ipwhois.exceptions.ASNParseError:
+                    logger.error("ASN parse error for IP %s", host)
+                except exceptions.HTTPRateLimitError:
+                    logger.warning("Rate limit error for IP %s", host)
             else:
                 logger.info("target %s was processed before, skipping", host)
                 continue

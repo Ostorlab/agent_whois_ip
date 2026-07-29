@@ -220,6 +220,58 @@ def testAgentWhoisIP_whenDnsAsnExpansionFails_processesRemainingIps(
     assert "ASN expansion failed for ASN 15169" in caplog.text
 
 
+def testAgentWhoisIP_whenDnsRecordIpHasAsnParseError_processesRemainingIps(
+    scan_message_dns_resolver_record: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that ASNParseError on one DNS IP does not skip remaining IPs."""
+    del agent_persist_mock
+    good_record = {"network": {}, "objects": {}}
+    mocker.patch(
+        "agent.whois_ip_agent._get_whois_record",
+        side_effect=[
+            ipwhois.exceptions.ASNParseError("bad asn"),
+            good_record,
+            good_record,
+        ],
+    )
+
+    test_agent.process(scan_message_dns_resolver_record)
+
+    assert len(agent_mock) == 2
+    assert "ASN parse error for IP" in caplog.text
+
+
+def testAgentWhoisIP_whenDnsRecordIpHitsRateLimit_processesRemainingIps(
+    scan_message_dns_resolver_record: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that HTTPRateLimitError on one DNS IP does not skip remaining IPs."""
+    del agent_persist_mock
+    good_record = {"network": {}, "objects": {}}
+    mocker.patch(
+        "agent.whois_ip_agent._get_whois_record",
+        side_effect=[
+            ipwhois.exceptions.HTTPRateLimitError("slow down"),
+            good_record,
+            good_record,
+        ],
+    )
+
+    test_agent.process(scan_message_dns_resolver_record)
+
+    assert len(agent_mock) == 2
+    assert "Rate limit error for IP" in caplog.text
+
+
 def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
     scan_message_ipv4_mask: message.Message,
     scan_message_ipv4_mask_2: message.Message,
