@@ -175,6 +175,21 @@ def testFetchRipePrefixes_whenPrefixEntryIsNotAnObject_skipsEntry(
     assert ipwhois_data_handler._fetch_ripe_prefixes("AS15169") == ["8.8.8.0/24"]
 
 
+def testFetchRipePrefixes_whenPrefixesIsNotAList_raisesRipeLookupError(
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that an invalid prefixes type raises a controlled lookup error."""
+    response = BytesIO(
+        json.dumps({"status": "ok", "data": {"prefixes": 42}}).encode("utf-8")
+    )
+    response_ctx = mock.MagicMock()
+    response_ctx.__enter__.return_value = response
+    mocker.patch("urllib.request.urlopen", return_value=response_ctx)
+
+    with pytest.raises(ipwhois_data_handler.RipeLookupError):
+        ipwhois_data_handler._fetch_ripe_prefixes("AS15169")
+
+
 def testFetchRipePrefixes_whenNetworkError_raisesRipeLookupError(
     mocker: plugin.MockerFixture,
 ) -> None:

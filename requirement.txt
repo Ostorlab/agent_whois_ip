@@ -2,3 +2,4 @@ ostorlab[agent]
 rich
 ipwhois
 psutil
+tenacity
