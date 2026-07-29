@@ -56,10 +56,10 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         self._scope_domain_regex: str | None = self.args.get("scope_domain_regex")
 
     def process(self, message: m.Message) -> None:
-        """Process DNS records, IP assets, and WHOIS results.
+        """Process DNS records and IP assets.
 
         Args:
-            message: DNS record, IP asset, or IP WHOIS message.
+            message: DNS record or IP asset message.
 
         Returns:
             None
@@ -67,15 +67,6 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         logger.debug("processing message of selector %s", message.selector)
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
-        if message.selector in (
-            "v3.asset.ip.v4.whois",
-            "v3.asset.ip.v6.whois",
-        ):
-            asn = message.data.get("asn_number")
-            if asn is None:
-                logger.warning("WHOIS message received without an asn_number field")
-                return
-            return self._process_asn(str(asn))
         host = message.data.get("host")
         if host is not None:
             return self._process_ip(message, host)
@@ -158,6 +149,9 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                         address, record
                     )
                     self._emit_whois_message(whois_message)
+                    asn = whois_message.get("asn_number")
+                    if asn is not None:
+                        self._process_asn(str(asn))
                 except (
                     ipwhois.exceptions.IPDefinedError,
                     ipwhois.exceptions.ASNRegistryError,

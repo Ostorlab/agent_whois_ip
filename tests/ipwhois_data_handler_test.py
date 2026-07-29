@@ -42,6 +42,12 @@ def testNormalizeAsn_whenNotNumeric_raisesValueError() -> None:
         ipwhois_data_handler.normalize_asn("ASGOOGLE")
 
 
+def testNormalizeAsn_whenUnicodeDigits_raisesValueError() -> None:
+    """Test that ASN normalization accepts ASCII digits only."""
+    with pytest.raises(ValueError, match="Invalid ASN"):
+        ipwhois_data_handler.normalize_asn("AS①")
+
+
 def testGetNetworksForAsn_whenLookupReturnsPrefixes_returnsDeduplicatedNetworks(
     mocker: plugin.MockerFixture,
 ) -> None:

@@ -124,7 +124,7 @@ def normalize_asn(asn: str) -> str:
         number_part = trimmed[2:]
     else:
         number_part = trimmed
-    if number_part.isnumeric() is False:
+    if number_part.isascii() is False or number_part.isdecimal() is False:
         raise ValueError(f"Invalid ASN: {asn}")
     return f"AS{number_part}"
 
