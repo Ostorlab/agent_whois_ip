@@ -71,6 +71,17 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         if host is not None:
             return self._process_ip(message, host)
 
+    def _emit_whois_and_expand_networks(self, whois_message: Dict[str, Any]) -> None:
+        """Emit an IP WHOIS result and expand its ASN through RIPE.
+
+        Args:
+            whois_message: Prepared IPv4 or IPv6 WHOIS message data.
+        """
+        self._emit_whois_message(whois_message)
+        asn = whois_message.get("asn_number")
+        if asn is not None:
+            self._process_asn(str(asn))
+
     def _is_domain_in_scope(self, domain: str) -> bool:
         """Check if a domain is in the scan scope with a regular expression."""
         if self._scope_domain_regex is None:
@@ -102,7 +113,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(
                         ip, record
                     )
-                    self._emit_whois_message(whois_message)
+                    self._emit_whois_and_expand_networks(whois_message)
                 except (
                     ipwhois.exceptions.IPDefinedError,
                     ipwhois.exceptions.HTTPLookupError,
@@ -148,10 +159,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                     whois_message = ipwhois_data_handler.prepare_whois_message_data(
                         address, record
                     )
-                    self._emit_whois_message(whois_message)
-                    asn = whois_message.get("asn_number")
-                    if asn is not None:
-                        self._process_asn(str(asn))
+                    self._emit_whois_and_expand_networks(whois_message)
                 except (
                     ipwhois.exceptions.IPDefinedError,
                     ipwhois.exceptions.ASNRegistryError,

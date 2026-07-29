@@ -142,6 +142,36 @@ def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(
     assert agent_mock[0].selector == "v3.asset.ip.v6.whois"
 
 
+def testAgentWhoisIP_whenDnsRecordWhoisHasAsn_emitsAnnouncedNetworks(
+    scan_message_dns_resolver_record: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    emit_calls: list[dict[str, Any]],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that DNS-derived IP WHOIS ASNs are expanded through RIPE."""
+    del agent_persist_mock
+    whois_lookup = mocker.patch(
+        "agent.whois_ip_agent._get_whois_record",
+        return_value={"asn": "15169", "network": {}, "objects": {}},
+    )
+    fetch_mock = mocker.patch(
+        "agent.ipwhois_data_handler._fetch_ripe_prefixes",
+        return_value=["8.8.8.0/24", "2a00:1450:4000::/37"],
+    )
+
+    test_agent.process(scan_message_dns_resolver_record)
+
+    assert whois_lookup.call_count == 3
+    assert fetch_mock.call_count == 1
+    cidrs = sorted(
+        _emitted_network_cidr(call)
+        for call in emit_calls
+        if call["selector"] == "v3.asset.network"
+    )
+    assert cidrs == ["2a00:1450:4000::/37", "8.8.8.0/24"]
+
+
 def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
     scan_message_ipv4_mask: message.Message,
     scan_message_ipv4_mask_2: message.Message,
