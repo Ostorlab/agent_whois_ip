@@ -216,6 +216,9 @@ def _normalize_networks(
     networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
     seen: set[ipaddress.IPv4Network | ipaddress.IPv6Network] = set()
     for cidr_str in cidrs:
+        if not isinstance(cidr_str, str):
+            logger.warning("ignoring non-string CIDR value: %r", cidr_str)
+            continue
         candidate = cidr_str.strip()
         if len(candidate) == 0:
             continue
