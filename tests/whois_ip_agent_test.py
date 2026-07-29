@@ -207,15 +207,14 @@ def testAgentWhoisIP_whenDnsAsnExpansionFails_processesRemainingIps(
         "agent.whois_ip_agent._get_whois_record",
         return_value={"asn": "15169", "network": {}, "objects": {}},
     )
-    process_asn = mocker.patch.object(
-        test_agent,
-        "_process_asn",
-        side_effect=[RuntimeError("RIPE unavailable"), None, None],
+    fetch_mock = mocker.patch(
+        "agent.ipwhois_data_handler._fetch_ripe_prefixes",
+        side_effect=[RuntimeError("RIPE unavailable"), [], []],
     )
 
     test_agent.process(scan_message_dns_resolver_record)
 
-    assert process_asn.call_count == 3
+    assert fetch_mock.call_count == 2
     assert len(agent_mock) == 3
     assert "ASN expansion failed for ASN 15169" in caplog.text
 
@@ -230,7 +229,7 @@ def testAgentWhoisIP_whenDnsRecordIpHasAsnParseError_processesRemainingIps(
 ) -> None:
     """Test that ASNParseError on one DNS IP does not skip remaining IPs."""
     del agent_persist_mock
-    good_record = {"network": {}, "objects": {}}
+    good_record: dict[str, object] = {"network": {}, "objects": {}}
     mocker.patch(
         "agent.whois_ip_agent._get_whois_record",
         side_effect=[
@@ -256,7 +255,7 @@ def testAgentWhoisIP_whenDnsRecordIpHitsRateLimit_processesRemainingIps(
 ) -> None:
     """Test that HTTPRateLimitError on one DNS IP does not skip remaining IPs."""
     del agent_persist_mock
-    good_record = {"network": {}, "objects": {}}
+    good_record: dict[str, object] = {"network": {}, "objects": {}}
     mocker.patch(
         "agent.whois_ip_agent._get_whois_record",
         side_effect=[
