@@ -1,5 +1,6 @@
 """Helper module for preparing the whois IP and ASN messages."""
 
+import collections.abc
 import ipaddress
 import json
 import logging
@@ -203,12 +204,12 @@ def get_networks_for_asn(
 
 
 def _normalize_networks(
-    cidrs: list[str],
+    cidrs: collections.abc.Iterable[object],
 ) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
-    """Parse and deduplicate network ranges from a list of CIDR strings.
+    """Parse and deduplicate network ranges from CIDR values.
 
     Args:
-        cidrs: Raw CIDR strings (e.g. announced prefixes).
+        cidrs: Raw values expected to contain announced CIDR strings.
 
     Returns:
         Deduplicated list of parsed networks.
