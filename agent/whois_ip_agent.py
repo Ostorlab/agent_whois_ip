@@ -236,8 +236,9 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         """Emit a discovered network range as a ``v3.asset.network`` message.
 
         Duplicate CIDRs (e.g. announced by several ASNs) are emitted once by
-        marking the exact CIDR as processed before emission. Each range uses one
-        network IP entry with its prefix length; addresses are not enumerated.
+        reserving the exact CIDR while it is emitted. A failed emission releases
+        the reservation so the CIDR remains retryable. Each range uses one network
+        IP entry with its prefix length; addresses are not enumerated.
 
         Args:
             network: The discovered network range.
@@ -246,7 +247,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             None
         """
         cidr = str(network)
-        if self.set_add("agent_whois_ip_network_asset", cidr) is False:
+        network_key = f"agent_whois_ip_network_asset:{cidr}"
+        if self.set_add(network_key, cidr) is False:
             logger.info("network %s was processed before, skipping", cidr)
             return
         try:
@@ -263,10 +265,11 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                 },
             )
         except Exception:
-            logger.exception(
-                "failed to emit network %s, CIDR was marked but message was not sent",
-                cidr,
-            )
+            try:
+                self.delete(network_key)
+            except Exception:
+                logger.exception("failed to release network claim %s", network_key)
+            logger.exception("failed to emit network %s", cidr)
             raise
 
     def _emit_whois_message(self, whois_message: Dict[str, Any]) -> None:

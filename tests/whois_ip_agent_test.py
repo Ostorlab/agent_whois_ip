@@ -575,6 +575,7 @@ def testAgentWhoisIP_whenNetworkEmitFails_logsAndReleasesAsnClaim(
     assert "failed to emit network" in caplog.text
     assert "unexpected error processing ASN" in caplog.text
     assert "agent_whois_ip_asn_asset:AS15169" not in agent_persist_mock
+    assert "agent_whois_ip_network_asset:8.8.8.0/24" not in agent_persist_mock
 
 
 def testAgentWhoisIP_whenWhoisAsnProcessed_doesNotEnumerateAddresses(
