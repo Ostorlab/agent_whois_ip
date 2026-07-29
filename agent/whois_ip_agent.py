@@ -79,8 +79,12 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         """
         self._emit_whois_message(whois_message)
         asn = whois_message.get("asn_number")
-        if asn is not None:
+        if asn is None:
+            return
+        try:
             self._process_asn(str(asn))
+        except Exception:
+            logger.exception("ASN expansion failed for ASN %s", asn)
 
     def _is_domain_in_scope(self, domain: str) -> bool:
         """Check if a domain is in the scan scope with a regular expression."""
@@ -124,8 +128,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
                         "some data not found when agent_whois_ip_asset try to process IP "
                     )
             else:
-                logger.info("target %s was processed before, exiting", host)
-                return
+                logger.info("target %s was processed before, skipping", host)
+                continue
 
     def _process_ip(self, message: m.Message, host: str) -> None:
         mask = message.data.get("mask")

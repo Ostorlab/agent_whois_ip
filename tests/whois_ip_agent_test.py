@@ -172,6 +172,54 @@ def testAgentWhoisIP_whenDnsRecordWhoisHasAsn_emitsAnnouncedNetworks(
     assert cidrs == ["2a00:1450:4000::/37", "8.8.8.0/24"]
 
 
+def testAgentWhoisIP_whenDnsRecordContainsProcessedIp_processesRemainingIps(
+    scan_message_dns_resolver_record: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that one processed DNS address does not skip the remaining addresses."""
+    del agent_persist_mock
+    mocker.patch.object(test_agent, "set_add", side_effect=[False, True, True])
+    whois_lookup = mocker.patch(
+        "agent.whois_ip_agent._get_whois_record",
+        return_value={"network": {}, "objects": {}},
+    )
+
+    test_agent.process(scan_message_dns_resolver_record)
+
+    assert whois_lookup.call_count == 2
+    assert len(agent_mock) == 2
+
+
+def testAgentWhoisIP_whenDnsAsnExpansionFails_processesRemainingIps(
+    scan_message_dns_resolver_record: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that one ASN expansion failure does not stop DNS address processing."""
+    del agent_persist_mock
+    mocker.patch(
+        "agent.whois_ip_agent._get_whois_record",
+        return_value={"asn": "15169", "network": {}, "objects": {}},
+    )
+    process_asn = mocker.patch.object(
+        test_agent,
+        "_process_asn",
+        side_effect=[RuntimeError("RIPE unavailable"), None, None],
+    )
+
+    test_agent.process(scan_message_dns_resolver_record)
+
+    assert process_asn.call_count == 3
+    assert len(agent_mock) == 3
+    assert "ASN expansion failed for ASN 15169" in caplog.text
+
+
 def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
     scan_message_ipv4_mask: message.Message,
     scan_message_ipv4_mask_2: message.Message,
@@ -537,7 +585,7 @@ def testAgentWhoisIP_whenIpAsnLookupFails_remainsRetryable(
     assert "some data not found" in caplog.text
 
 
-def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_propagatesOriginal(
+def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_logsBothFailures(
     scan_message_ipv4_with_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
@@ -545,7 +593,7 @@ def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_propagatesOriginal(
     mocker: plugin.MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test that an unexpected error is propagated even if releasing the claim fails."""
+    """Test that ASN and claim-release failures are logged without stopping WHOIS."""
     del emit_calls, agent_persist_mock
 
     original_error = RuntimeError("boom")
@@ -564,21 +612,21 @@ def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_propagatesOriginal(
         side_effect=RuntimeError("redis down"),
     )
 
-    with pytest.raises(RuntimeError, match="boom"):
-        test_agent.process(scan_message_ipv4_with_asn)
+    test_agent.process(scan_message_ipv4_with_asn)
 
     assert "unexpected error processing ASN" in caplog.text
     assert "failed to release ASN claim" in caplog.text
+    assert "ASN expansion failed for ASN 15169" in caplog.text
 
 
-def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndReraises(
+def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndContinues(
     scan_message_ipv4_with_asn: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
-    """Test that an unexpected error releases the ASN claim so it stays retryable."""
+    """Test that an unexpected ASN error releases its claim and preserves WHOIS."""
     del emit_calls
     fetch_mock = mocker.patch(
         "agent.ipwhois_data_handler._fetch_ripe_prefixes",
@@ -586,8 +634,7 @@ def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndReraises(
     )
     delete_mock = mocker.patch.object(whois_ip_agent.WhoisIPAgent, "delete")
 
-    with pytest.raises(RuntimeError, match="unexpected"):
-        test_agent.process(scan_message_ipv4_with_asn)
+    test_agent.process(scan_message_ipv4_with_asn)
 
     assert fetch_mock.call_count == 1
     assert delete_mock.call_count == 1
@@ -601,7 +648,7 @@ def testAgentWhoisIP_whenNetworkEmitFails_logsAndReleasesAsnClaim(
     mocker: plugin.MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test that an emit failure is logged and propagated while the ASN stays retryable."""
+    """Test that an emit failure is logged and leaves the ASN retryable."""
 
     def _raise_on_emit(
         selector: str,
@@ -614,11 +661,11 @@ def testAgentWhoisIP_whenNetworkEmitFails_logsAndReleasesAsnClaim(
 
     mocker.patch.object(test_agent, "emit", side_effect=_raise_on_emit)
 
-    with pytest.raises(RuntimeError, match="bus down"):
-        test_agent.process(scan_message_ipv4_with_asn)
+    test_agent.process(scan_message_ipv4_with_asn)
 
     assert "failed to emit network" in caplog.text
     assert "unexpected error processing ASN" in caplog.text
+    assert "ASN expansion failed for ASN 15169" in caplog.text
     assert "agent_whois_ip_asn_asset:AS15169" not in agent_persist_mock
     assert "agent_whois_ip_network_asset:8.8.8.0/24" not in agent_persist_mock
 
