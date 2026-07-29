@@ -594,7 +594,7 @@ def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_logsBothFailures(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that ASN and claim-release failures are logged without stopping WHOIS."""
-    del emit_calls, agent_persist_mock
+    del agent_persist_mock
 
     original_error = RuntimeError("boom")
 
@@ -617,6 +617,8 @@ def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_logsBothFailures(
     assert "unexpected error processing ASN" in caplog.text
     assert "failed to release ASN claim" in caplog.text
     assert "ASN expansion failed for ASN 15169" in caplog.text
+    assert len(emit_calls) == 1
+    assert emit_calls[0]["selector"] == "v3.asset.ip.v4.whois"
 
 
 def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndContinues(
@@ -627,7 +629,6 @@ def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndContinues(
     mocker: plugin.MockerFixture,
 ) -> None:
     """Test that an unexpected ASN error releases its claim and preserves WHOIS."""
-    del emit_calls
     fetch_mock = mocker.patch(
         "agent.ipwhois_data_handler._fetch_ripe_prefixes",
         side_effect=RuntimeError("unexpected"),
@@ -638,6 +639,8 @@ def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndContinues(
 
     assert fetch_mock.call_count == 1
     assert delete_mock.call_count == 1
+    assert len(emit_calls) == 1
+    assert emit_calls[0]["selector"] == "v3.asset.ip.v4.whois"
 
 
 def testAgentWhoisIP_whenNetworkEmitFails_logsAndReleasesAsnClaim(
