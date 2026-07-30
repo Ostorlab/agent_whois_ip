@@ -3,7 +3,7 @@
 import ipaddress
 import logging
 import re
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 import ipwhois
 import tenacity
@@ -71,7 +71,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         if host is not None:
             return self._process_ip(message, host)
 
-    def _emit_whois_and_expand_networks(self, whois_message: Dict[str, Any]) -> None:
+    def _emit_whois_and_expand_networks(self, whois_message: dict[str, Any]) -> None:
         """Emit an IP WHOIS result and expand its ASN through RIPE.
 
         Args:
@@ -212,7 +212,9 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             return
         logger.info("processing ASN %s", normalized_asn)
         try:
-            networks = ipwhois_data_handler.get_networks_for_asn(normalized_asn)
+            networks = ipwhois_data_handler.get_networks_for_normalized_asn(
+                normalized_asn
+            )
             for network in networks:
                 self._emit_network_message(network)
         except (
@@ -282,7 +284,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             logger.exception("failed to emit network %s", cidr)
             raise
 
-    def _emit_whois_message(self, whois_message: Dict[str, Any]) -> None:
+    def _emit_whois_message(self, whois_message: dict[str, Any]) -> None:
         """Emit the whois message depending on the type of host address"""
         if (version := whois_message.get("version")) is not None:
             if version == 4:

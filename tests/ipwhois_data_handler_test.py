@@ -110,6 +110,25 @@ def testGetNetworksForAsn_normalizesAsnBeforeLookup(
     assert spy.call_args.args[0] == "AS15169"
 
 
+def testGetNetworksForNormalizedAsn_doesNotReNormalize(
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that an already-normalized ASN is passed straight to the lookup."""
+    normalize_spy = mocker.patch(
+        "agent.ipwhois_data_handler.normalize_asn", return_value="AS15169"
+    )
+    fetch_spy = mocker.patch(
+        "agent.ipwhois_data_handler._fetch_ripe_prefixes",
+        return_value=["8.8.8.0/24", "2a00:1450:4000::/37"],
+    )
+
+    networks = ipwhois_data_handler.get_networks_for_normalized_asn("AS15169")
+
+    assert normalize_spy.call_count == 0
+    assert fetch_spy.call_args.args[0] == "AS15169"
+    assert len(networks) == 2
+
+
 def testGetNetworksForAsn_whenInvalidAsn_raisesValueError(
     mocker: plugin.MockerFixture,
 ) -> None:

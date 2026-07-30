@@ -179,13 +179,39 @@ def _fetch_ripe_prefixes(resource: str) -> list[str]:
     ]
 
 
+def get_networks_for_normalized_asn(
+    normalized_asn: str,
+) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    """Look up the networks announced by an already-normalized ASN.
+
+    Queries the public RIPE announced-prefixes API (no authentication) and
+    returns the announced prefixes normalized and deduplicated. The caller is
+    responsible for normalizing the ASN (via :func:`normalize_asn`), so this
+    entry point avoids a redundant normalization when the normalized value is
+    already known (e.g. for deduplication claim keys).
+
+    Args:
+        normalized_asn: The ASN in ``AS<number>`` form.
+
+    Returns:
+        Deduplicated list of announced networks, preserving IPv4 and IPv6
+        ranges as returned by RIPE.
+
+    Raises:
+        RipeLookupError: If the RIPE lookup fails after retries.
+    """
+    prefixes = _fetch_ripe_prefixes(normalized_asn)
+    return _normalize_networks(prefixes)
+
+
 def get_networks_for_asn(
     asn: str,
 ) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
     """Look up the IPv4 and IPv6 network ranges announced by an ASN.
 
-    Queries the public RIPE announced-prefixes API (no authentication) and
-    returns the announced prefixes normalized and deduplicated.
+    Normalizes the ASN, then queries the public RIPE announced-prefixes API
+    (no authentication) and returns the announced prefixes normalized and
+    deduplicated.
 
     Args:
         asn: The ASN, with or without the leading ``AS`` prefix.
@@ -199,8 +225,7 @@ def get_networks_for_asn(
         ValueError: If the ASN is invalid.
     """
     normalized_asn = normalize_asn(asn)
-    prefixes = _fetch_ripe_prefixes(normalized_asn)
-    return _normalize_networks(prefixes)
+    return get_networks_for_normalized_asn(normalized_asn)
 
 
 def _normalize_networks(
