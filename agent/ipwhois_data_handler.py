@@ -2,7 +2,7 @@
 
 import ipaddress
 import logging
-from typing import Any, Dict, Union, Optional, List
+from typing import Any
 
 from ostorlab.agent.message import message as m
 
@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 def prepare_whois_message_data(
-    ip: ipaddress.IPv4Address | ipaddress.IPv6Address, record: Dict[str, Any]
-) -> Dict[str, Any]:
+    ip: ipaddress.IPv4Address | ipaddress.IPv6Address, record: dict[str, Any]
+) -> dict[str, Any]:
     """Prepares data of the whois IP message.
 
     Args:
@@ -22,7 +22,7 @@ def prepare_whois_message_data(
         Dict whois message.
     """
 
-    whois_message: Dict[str, Any] = {
+    whois_message: dict[str, Any] = {
         "host": str(ip),
         "mask": str(ip.max_prefixlen),
         "version": ip.version,
@@ -59,7 +59,7 @@ def prepare_whois_message_data(
     return whois_message
 
 
-def _get_entity_address(e: Dict[str, Any]) -> Optional[str]:
+def _get_entity_address(e: dict[str, Any]) -> str | None:
     addresses = e.get("contact", {}).get("address", [])
     if addresses is None:
         return None
@@ -68,7 +68,7 @@ def _get_entity_address(e: Dict[str, Any]) -> Optional[str]:
 
 def get_ips_from_dns_record_message(
     message: m.Message,
-) -> List[Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
+) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
     """Extract IP address from DNS record messages.
 
     Args:

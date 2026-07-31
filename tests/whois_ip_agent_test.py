@@ -1,6 +1,5 @@
 """Unittests for WhoisIP agent."""
 
-from typing import List, Dict
 from unittest import mock
 
 import ipwhois
@@ -14,8 +13,8 @@ from agent import whois_ip_agent
 def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
     scan_message_ipv4: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
     mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of an IPv4 address."""
@@ -57,8 +56,8 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
 def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
     scan_message_ipv6: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
     mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of an IPv6 address."""
@@ -110,8 +109,8 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
 def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(
     scan_message_dns_resolver_record: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
     mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of IP addresses in a dns resolver record message."""
@@ -124,8 +123,8 @@ def testAgentWhoisIP_whenDnsRecordMsgRecieved_emitsWhoisRecords(
 def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(
     scan_message_dns_aaaa_record: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
     mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of IP addresses in a dns aaaa record message."""
@@ -139,8 +138,8 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
     scan_message_ipv4_mask: message.Message,
     scan_message_ipv4_mask_2: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
     mock_whois_lookup: None,
 ) -> None:
     """Test collecting whois of an IPv4 address."""
@@ -184,8 +183,8 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
 def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgInScope_emitsWhoisRecords(
     scan_message_dns_resolver_record: message.Message,
     whois_ip_agent_with_scope_arg: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
     mock_whois_lookup: None,
 ) -> None:
     """Ensure the domain scope argument is enforced, and dns records of domains in the scope should be processed."""
@@ -199,8 +198,8 @@ def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgInScope_emitsWhoisRecords(
 
 def testAgentWhoisIP_whenDomainScopeArgAndDnsRecordMsgNotInScope_targetShouldNotBeProcessed(
     whois_ip_agent_with_scope_arg: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> None:
     """Ensure the domain scope argument is enforced, and dns records of
     domains not in the scope should not be processed."""
@@ -222,8 +221,8 @@ def testAgentWhoisIP_whenRDAPIsDown_shouldRetry(
     mocker: plugin.MockerFixture,
     scan_message_ipv4: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> None:
     """Test collecting whois of an IPv4 address, when server is down should retry."""
     del agent_persist_mock
@@ -294,7 +293,7 @@ def testWhoisIP_whenIPAssetHasIncorrectVersion_raiseValueError(
 
 def testWhoisIP_whenIPHasNoASN_doesNotCrash(
     test_agent: whois_ip_agent.WhoisIPAgent,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     mocker: plugin.MockerFixture,
     scan_message_global_ipv4_with_mask32: message.Message,
 ) -> None:
@@ -358,7 +357,7 @@ def testWhoisIp_whenASNParseErrorOccure_logWithoutCrash(
     scan_message_ipv4: message.Message,
     agent_persist_mock: dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that ASNParseError is caught and logged."""
