@@ -153,12 +153,14 @@ def _fetch_ripe_prefixes(resource: str) -> list[str]:
         RipeLookupError: If the lookup fails after retries.
     """
     url = f"{RIPE_ANNOUNCED_PREFIXES_URL}?resource={resource}"
-    request = urllib.request.Request(
+    http_request = urllib.request.Request(
         url,
         headers={"Accept": "application/json", "User-Agent": RIPE_USER_AGENT},
     )
     try:
-        with urllib.request.urlopen(request, timeout=RIPE_LOOKUP_TIMEOUT) as response:
+        with urllib.request.urlopen(
+            http_request, timeout=RIPE_LOOKUP_TIMEOUT
+        ) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, ValueError) as e:
         raise RipeLookupError(f"RIPE lookup failed for {resource}") from e

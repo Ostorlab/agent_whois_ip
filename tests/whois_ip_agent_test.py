@@ -142,6 +142,36 @@ def testAgentWhoisIP_whenDnsAAAAMsgRecieved_emitsWhoisRecords(
     assert agent_mock[0].selector == "v3.asset.ip.v6.whois"
 
 
+def testAgentWhoisIP_whenWhoisEmitFailsForOneDnsIp_processesRemainingIps(
+    scan_message_dns_resolver_record: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mock_whois_lookup: None,
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that a WHOIS emit failure for one IP does not skip the remaining IPs."""
+    del agent_persist_mock
+    emitted_selectors: list[str] = []
+
+    def _emit(
+        selector: str,
+        data: dict[str, Any],
+        message_id: str | None = None,
+        message_priority: int | None = None,
+    ) -> None:
+        if data.get("host") == "8.8.8.8":
+            raise RuntimeError("bus down")
+        emitted_selectors.append(selector)
+
+    mocker.patch.object(test_agent, "emit", side_effect=_emit)
+
+    test_agent.process(scan_message_dns_resolver_record)
+
+    assert "failed to emit WHOIS message" in caplog.text
+    assert len(emitted_selectors) == 2
+
+
 def testAgentWhoisIP_whenDnsRecordWhoisHasAsn_emitsAnnouncedNetworks(
     scan_message_dns_resolver_record: message.Message,
     test_agent: whois_ip_agent.WhoisIPAgent,
@@ -515,6 +545,7 @@ def testWhoisIp_whenASNParseErrorOccure_logWithoutCrash(
 
 def testAgentWhoisIP_whenIpWhoisHasAsn_emitsAnnouncedNetworks(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
@@ -537,6 +568,7 @@ def testAgentWhoisIP_whenIpWhoisHasAsn_emitsAnnouncedNetworks(
 
 def testAgentWhoisIP_whenIpWhoisHasAsn_deduplicatesNetworkRanges(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
@@ -556,6 +588,7 @@ def testAgentWhoisIP_whenIpWhoisHasAsn_deduplicatesNetworkRanges(
 
 def testAgentWhoisIP_whenIpAsnProcessedBefore_doesNotReprocess(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
@@ -579,6 +612,7 @@ def testAgentWhoisIP_whenIpAsnProcessedBefore_doesNotReprocess(
 
 def testAgentWhoisIP_whenIpAsnProcessedConcurrently_claimPreventsDuplicateLookup(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
@@ -610,6 +644,7 @@ def testAgentWhoisIP_whenIpAsnProcessedConcurrently_claimPreventsDuplicateLookup
 
 def testAgentWhoisIP_whenIpAsnLookupFails_remainsRetryable(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
@@ -638,6 +673,7 @@ def testAgentWhoisIP_whenIpAsnLookupFails_remainsRetryable(
 
 def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_logsBothFailures(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
@@ -674,6 +710,7 @@ def testAgentWhoisIP_whenUnexpectedErrorAndClaimReleaseFails_logsBothFailures(
 
 def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndContinues(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
@@ -696,6 +733,7 @@ def testAgentWhoisIP_whenUnexpectedError_releasesClaimAndContinues(
 
 def testAgentWhoisIP_whenNetworkEmitFails_logsAndReleasesAsnClaim(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     agent_persist_mock: dict[str | bytes, str | bytes],
     mock_ripe_prefixes: None,
@@ -726,6 +764,7 @@ def testAgentWhoisIP_whenNetworkEmitFails_logsAndReleasesAsnClaim(
 
 def testAgentWhoisIP_whenIpAsnProcessed_doesNotEnumerateAddresses(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],
@@ -792,6 +831,7 @@ def testAgentWhoisIP_whenIpWhoisHasNoAsn_doesNotExpandNetworks(
 
 def testAgentWhoisIP_whenIpResultsShareAsn_deduplicatesLookup(
     scan_message_ipv4_with_asn: message.Message,
+    mock_whois_lookup_with_asn: None,
     test_agent: whois_ip_agent.WhoisIPAgent,
     emit_calls: list[dict[str, Any]],
     agent_persist_mock: dict[str | bytes, str | bytes],

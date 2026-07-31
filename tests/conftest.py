@@ -176,15 +176,20 @@ def scan_message_global_ipv4_with_mask32() -> message.Message:
 
 
 @pytest.fixture
-def scan_message_ipv4_with_asn(mocker: Any) -> message.Message:
-    """Creates an IPv4 input whose WHOIS result contains an ASN."""
-    mocker.patch(
-        "agent.whois_ip_agent._get_whois_record",
-        return_value={"asn": "15169", "network": {}, "objects": {}},
-    )
+def scan_message_ipv4_with_asn() -> message.Message:
+    """Creates a dummy message of IPv4 asset used for the ASN expansion tests."""
     return message.Message.from_data(
         selector="v3.asset.ip.v4",
         data={"host": "8.8.8.8", "version": 4},
+    )
+
+
+@pytest.fixture
+def mock_whois_lookup_with_asn(mocker: Any) -> None:
+    """Mocks the rdap lookup to return a WHOIS record carrying an ASN."""
+    mocker.patch(
+        "agent.whois_ip_agent._get_whois_record",
+        return_value={"asn": "15169", "network": {}, "objects": {}},
     )
 
 

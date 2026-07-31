@@ -74,10 +74,16 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
     def _emit_whois_and_expand_networks(self, whois_message: dict[str, Any]) -> None:
         """Emit an IP WHOIS result and expand its ASN through RIPE.
 
+        Emission and ASN expansion failures are isolated so a single IP does not
+        stop the processing of the remaining addresses of the same message.
+
         Args:
             whois_message: Prepared IPv4 or IPv6 WHOIS message data.
         """
-        self._emit_whois_message(whois_message)
+        try:
+            self._emit_whois_message(whois_message)
+        except Exception:
+            logger.exception("failed to emit WHOIS message")
         asn = whois_message.get("asn_number")
         if asn is None:
             return
