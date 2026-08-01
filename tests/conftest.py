@@ -1,8 +1,8 @@
 """Pytest fixture for the WhoisIP agent."""
 
-import pathlib
 import json
-from typing import Dict, Any
+import pathlib
+from typing import Any
 
 import pytest
 from ostorlab.agent import definitions as agent_definitions
@@ -89,7 +89,7 @@ def test_agent() -> whois_ip_agent.WhoisIPAgent:
 
 @pytest.fixture
 def whois_ip_agent_with_scope_arg(
-    agent_persist_mock: Dict[str | bytes, str | bytes],
+    agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> whois_ip_agent.WhoisIPAgent:
     """WhoisIP Agent fixture with domain scope regex argument for testing purposes."""
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
@@ -179,7 +179,7 @@ def scan_message_global_ipv4_with_mask32() -> message.Message:
 def mock_whois_lookup(mocker: Any) -> None:
     """Mocks the rdap lookup to avoid live network requests."""
 
-    def _mock_get_whois_record(host: str, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def _mock_get_whois_record(host: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
         if ":" in host:
             return {
                 "asn_country_code": "IE",
