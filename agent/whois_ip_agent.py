@@ -6,6 +6,7 @@ import re
 from typing import Any, cast
 
 import ipwhois
+import redis
 import tenacity
 from ipwhois import exceptions
 from ostorlab.agent import agent
@@ -207,7 +208,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         finally:
             try:
                 self.delete(claim_key)
-            except Exception:
+            except redis.exceptions.RedisError:
                 logger.exception("failed to release ASN claim for %s", normalized_asn)
 
     def _emit_network_message(
@@ -242,7 +243,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         finally:
             try:
                 self.delete(claim_key)
-            except Exception:
+            except redis.exceptions.RedisError:
                 logger.exception("failed to release network claim for %s", cidr)
 
     def _emit_whois_message(self, whois_message: dict[str, Any]) -> None:
