@@ -1,6 +1,7 @@
 """Unittests for WhoisIP agent."""
 
 import ipaddress
+from typing import Any
 from unittest import mock
 
 import ipwhois
@@ -492,7 +493,9 @@ def testAgentWhoisIP_whenAsnSucceeds_marksProcessedOnlyAfterEmission(
     def _is_processed() -> bool:
         return "AS268302" in agent_persist_mock.get(processed_set, set())
 
-    def _lookup(normalized_asn: str) -> list[ipaddress.IPv4Network]:
+    def _lookup(
+        normalized_asn: str,
+    ) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
         assert normalized_asn == "AS268302"
         assert _is_processed() is False
         return [ipaddress.ip_network("45.237.228.0/22")]
@@ -570,9 +573,41 @@ def testAgentWhoisIP_whenNetworkEmitFails_releasesClaimsAndRetries(
     assert "AS268302" in agent_persist_mock[whois_ip_agent.ASN_PROCESSED_SET]
 
 
+def testAgentWhoisIP_whenOneNetworkIsClaimed_stillEmitsTheRemainingNetworks(
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_persist_mock: dict[str | bytes, Any],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Emit every free network even when an earlier one is owned by another worker."""
+    claimed_cidr = "45.237.228.0/22"
+    free_cidr = "2801:80:2400::/48"
+    agent_persist_mock[f"{whois_ip_agent.NETWORK_CLAIM_KEY_PREFIX}:{claimed_cidr}"] = {
+        claimed_cidr
+    }
+    mocker.patch(
+        "agent.ipwhois_data_handler.get_networks_for_normalized_asn",
+        return_value=[
+            ipaddress.ip_network(claimed_cidr),
+            ipaddress.ip_network(free_cidr),
+        ],
+    )
+    emit_mock = mocker.patch.object(test_agent, "emit")
+
+    with pytest.raises(whois_ip_agent.NetworkClaimError):
+        test_agent.process(_asn_message("AS268302"))
+
+    assert emit_mock.call_count == 1
+    assert emit_mock.call_args.args == (
+        "v3.asset.network",
+        {"ips": [{"host": "2801:80:2400::", "mask": "48", "version": 6}]},
+    )
+    assert whois_ip_agent.ASN_PROCESSED_SET not in agent_persist_mock
+    assert free_cidr in agent_persist_mock[whois_ip_agent.NETWORK_PROCESSED_SET]
+
+
 def testAgentWhoisIP_whenNetworkClaimIsConcurrent_doesNotMarkAsnProcessed(
     test_agent: whois_ip_agent.WhoisIPAgent,
-    agent_persist_mock: dict[str | bytes, str | bytes],
+    agent_persist_mock: dict[str | bytes, Any],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Keep the ASN retryable while another worker owns a network claim."""
@@ -588,7 +623,7 @@ def testAgentWhoisIP_whenNetworkClaimIsConcurrent_doesNotMarkAsnProcessed(
     with pytest.raises(whois_ip_agent.NetworkClaimError):
         test_agent.process(_asn_message("AS268302"))
 
-    emit_mock.assert_not_called()
+    assert emit_mock.called is False
     assert whois_ip_agent.ASN_PROCESSED_SET not in agent_persist_mock
     assert f"{whois_ip_agent.ASN_CLAIM_KEY_PREFIX}:AS268302" not in agent_persist_mock
     assert agent_persist_mock[network_claim_key] == {cidr}

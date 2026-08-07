@@ -7,7 +7,6 @@ from io import BytesIO
 from unittest import mock
 
 import pytest
-import tenacity
 from pytest_mock import plugin
 
 from agent import ipwhois_data_handler
@@ -16,14 +15,6 @@ from agent import ipwhois_data_handler
 def _json_response(payload: object) -> BytesIO:
     """Build a context-manager response containing a JSON payload."""
     return BytesIO(json.dumps(payload).encode("utf-8"))
-
-
-def _fetch_without_wait(normalized_asn: str) -> list[object]:
-    """Run the retrying RIPE fetch without sleeping in a unit test."""
-    fetch = ipwhois_data_handler._fetch_ripe_prefixes.retry_with(
-        wait=tenacity.wait_none()
-    )
-    return fetch(normalized_asn)
 
 
 @pytest.mark.parametrize(
@@ -65,7 +56,7 @@ def testNormalizeAsn_whenValueIsInvalid_raisesValueError(value: object) -> None:
         {"status": "ok", "data": {"prefixes": {}}},
     ],
 )
-def testFetchRipePrefixes_whenPayloadMalformed_raisesAfterRetries(
+def testGetNetworksForAsn_whenPayloadMalformed_raisesAfterRetries(
     payload: object, mocker: plugin.MockerFixture
 ) -> None:
     """Treat malformed RIPE envelopes as retryable lookup failures."""
@@ -76,7 +67,7 @@ def testFetchRipePrefixes_whenPayloadMalformed_raisesAfterRetries(
     open_mock = mocker.patch("urllib.request.urlopen", side_effect=responses)
 
     with pytest.raises(ipwhois_data_handler.RipeLookupError):
-        _fetch_without_wait("AS268302")
+        ipwhois_data_handler.get_networks_for_normalized_asn("AS268302")
 
     assert open_mock.call_count == ipwhois_data_handler.RIPE_LOOKUP_ATTEMPTS
 
@@ -89,7 +80,7 @@ def testFetchRipePrefixes_whenPayloadMalformed_raisesAfterRetries(
         http.client.IncompleteRead(b"partial", 10),
     ],
 )
-def testFetchRipePrefixes_whenTransportOrReadFails_convertsAndRetries(
+def testGetNetworksForAsn_whenTransportOrReadFails_convertsAndRetries(
     error: BaseException,
     mocker: plugin.MockerFixture,
 ) -> None:
@@ -100,13 +91,13 @@ def testFetchRipePrefixes_whenTransportOrReadFails_convertsAndRetries(
     )
 
     with pytest.raises(ipwhois_data_handler.RipeLookupError) as exc_info:
-        _fetch_without_wait("AS268302")
+        ipwhois_data_handler.get_networks_for_normalized_asn("AS268302")
 
     assert open_mock.call_count == ipwhois_data_handler.RIPE_LOOKUP_ATTEMPTS
     assert isinstance(exc_info.value.__cause__, type(error))
 
 
-def testFetchRipePrefixes_whenFirstResponseFails_retriesAndReturnsPrefixes(
+def testGetNetworksForAsn_whenFirstResponseFails_retriesAndReturnsPrefixes(
     mocker: plugin.MockerFixture,
 ) -> None:
     """Retry a failed RIPE response and return the next valid response."""
@@ -131,9 +122,12 @@ def testFetchRipePrefixes_whenFirstResponseFails_retriesAndReturnsPrefixes(
         ],
     )
 
-    prefixes = _fetch_without_wait("AS268302")
+    networks = ipwhois_data_handler.get_networks_for_normalized_asn("AS268302")
 
-    assert prefixes == ["45.237.228.0/22", "2801:80:2400::/48", 42]
+    assert networks == [
+        ipaddress.ip_network("45.237.228.0/22"),
+        ipaddress.ip_network("2801:80:2400::/48"),
+    ]
     assert open_mock.call_count == 2
     request = open_mock.call_args.args[0]
     assert request.full_url.endswith("?resource=AS268302")
@@ -167,10 +161,11 @@ def testGetNetworksForAsn_normalizesAndExactlyDeduplicatesMixedPrefixes(
         ipaddress.ip_network("192.0.0.0/16"),
         ipaddress.ip_network("2001:db8:1::/48"),
     ]
-    fetch_mock.assert_called_once_with("AS268302")
+    assert fetch_mock.call_count == 1
+    assert fetch_mock.call_args.args == ("AS268302",)
 
 
-def testFetchRipePrefixes_buildsPublicRequestWithoutAuthentication(
+def testGetNetworksForAsn_buildsPublicRequestWithoutAuthentication(
     mocker: plugin.MockerFixture,
 ) -> None:
     """Use the public announced-prefixes endpoint without authorization."""
@@ -179,7 +174,7 @@ def testFetchRipePrefixes_buildsPublicRequestWithoutAuthentication(
         "urllib.request.urlopen", return_value=_json_response(response)
     )
 
-    assert _fetch_without_wait("AS15169") == []
+    assert ipwhois_data_handler.get_networks_for_normalized_asn("AS15169") == []
 
     request: mock.MagicMock = open_mock.call_args.args[0]
     assert "announced-prefixes" in request.full_url

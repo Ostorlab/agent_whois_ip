@@ -38,7 +38,11 @@ NETWORK_PROCESSED_SET = "agent_whois_ip_network_asset"
 NETWORK_CLAIM_KEY_PREFIX = "agent_whois_ip_network_claim"
 
 
-class NetworkClaimError(RuntimeError):
+class Error(Exception):
+    """Base error for the whois IP agent module."""
+
+
+class NetworkClaimError(Error):
     """Raised when another worker is currently emitting the same network."""
 
 
@@ -202,8 +206,18 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
             networks = ipwhois_data_handler.get_networks_for_normalized_asn(
                 normalized_asn
             )
+            contended_cidrs: list[str] = []
             for network in networks:
-                self._emit_network_message(network)
+                try:
+                    self._emit_network_message(network)
+                except NetworkClaimError:
+                    contended_cidrs.append(network.with_prefixlen)
+
+            if len(contended_cidrs) > 0:
+                raise NetworkClaimError(
+                    f"networks {', '.join(contended_cidrs)} are already being emitted"
+                )
+
             self.set_add(ASN_PROCESSED_SET, normalized_asn)
         finally:
             try:

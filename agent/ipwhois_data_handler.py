@@ -21,7 +21,11 @@ RIPE_USER_AGENT = "agent_whois_ip"
 MAX_ASN_NUMBER = 4_294_967_295
 
 
-class RipeLookupError(Exception):
+class Error(Exception):
+    """Base error for the ipwhois data handler module."""
+
+
+class RipeLookupError(Error):
     """Raised when the RIPE announced-prefixes lookup fails."""
 
 
