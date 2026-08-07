@@ -187,7 +187,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         """Expand an ASN into the network ranges it currently announces."""
         try:
             normalized_asn = ipwhois_data_handler.normalize_asn(asn)
-        except ValueError:
+        except (TypeError, ValueError):
             logger.warning("invalid ASN value: %r", asn)
             return
 

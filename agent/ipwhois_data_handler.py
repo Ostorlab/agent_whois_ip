@@ -117,12 +117,9 @@ def normalize_asn(asn: object) -> str:
 
     Returns:
         Canonical ASN value.
-
-    Raises:
-        ValueError: If the value is not a valid 32-bit ASN.
     """
     if not isinstance(asn, str):
-        raise ValueError(f"Invalid ASN: {asn!r}")
+        raise TypeError(f"Invalid ASN: {asn!r}")
     value = asn.strip()
     if value[:2].lower() == "as":
         value = value[2:]

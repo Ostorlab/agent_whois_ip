@@ -9,8 +9,7 @@ import pytest
 from ostorlab.agent.message import message
 from pytest_mock import plugin
 
-from agent import ipwhois_data_handler
-from agent import whois_ip_agent
+from agent import ipwhois_data_handler, whois_ip_agent
 
 
 def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(

@@ -37,11 +37,18 @@ def testNormalizeAsn_whenValueIsValid_returnsCanonicalAsn(
 
 @pytest.mark.parametrize(
     "value",
-    [None, 268302, "", "AS", "AS0", "AS-1", "AS1.5", "AS 1", "AS①", "AS4294967296"],
+    ["", "AS", "AS0", "AS-1", "AS1.5", "AS 1", "AS①", "AS4294967296"],
 )
-def testNormalizeAsn_whenValueIsInvalid_raisesValueError(value: object) -> None:
-    """Reject malformed, non-string, and out-of-range ASN values."""
+def testNormalizeAsn_whenValueIsMalformed_raisesValueError(value: object) -> None:
+    """Reject malformed and out-of-range ASN values."""
     with pytest.raises(ValueError, match="Invalid ASN"):
+        ipwhois_data_handler.normalize_asn(value)
+
+
+@pytest.mark.parametrize("value", [None, 268302])
+def testNormalizeAsn_whenValueIsNotAString_raisesTypeError(value: object) -> None:
+    """Reject non-string ASN values."""
+    with pytest.raises(TypeError, match="Invalid ASN"):
         ipwhois_data_handler.normalize_asn(value)
 
 
