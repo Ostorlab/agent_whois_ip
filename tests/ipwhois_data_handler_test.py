@@ -1,9 +1,9 @@
 """Tests for ASN normalization and RIPE announced-prefix handling."""
 
 import http.client
+import io
 import ipaddress
 import json
-from io import BytesIO
 from unittest import mock
 
 import pytest
@@ -12,9 +12,9 @@ from pytest_mock import plugin
 from agent import ipwhois_data_handler
 
 
-def _json_response(payload: object) -> BytesIO:
+def _json_response(payload: object) -> io.BytesIO:
     """Build a context-manager response containing a JSON payload."""
-    return BytesIO(json.dumps(payload).encode("utf-8"))
+    return io.BytesIO(json.dumps(payload).encode("utf-8"))
 
 
 @pytest.mark.parametrize(
