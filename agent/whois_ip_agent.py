@@ -6,6 +6,7 @@ import re
 from typing import Any, cast
 
 import ipwhois
+import requests
 import tenacity
 from ipwhois import exceptions
 from ostorlab.agent import agent
@@ -15,7 +16,7 @@ from ostorlab.agent.mixins import agent_persist_mixin as persist_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
-from agent import ipwhois_data_handler
+from agent import asn_whois_data_handler, ipwhois_data_handler
 
 logging.basicConfig(
     format="%(message)s",
@@ -56,10 +57,10 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         self._scope_domain_regex: str | None = self.args.get("scope_domain_regex")
 
     def process(self, message: m.Message) -> None:
-        """Process DNS records and IP asset to emit whois record.
+        """Process DNS records, IP and ASN assets to emit whois record.
 
         Args:
-            message: DNS record or IP asset message.
+            message: DNS record, IP or ASN asset message.
 
         Returns:
             None
@@ -67,6 +68,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         logger.debug("processing message of selector %s", message.selector)
         if message.selector.startswith("v3.asset.domain_name.dns_record"):
             return self._process_dns_record(message)
+        if message.selector.startswith("v3.asset.asn"):
+            return self._process_asn(message)
         host = message.data.get("host")
         if host is not None:
             return self._process_ip(message, host)
@@ -166,6 +169,28 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         else:
             logger.info("target %s was processed before, exiting", network)
             return
+
+    def _process_asn(self, message: m.Message) -> None:
+        asn = message.data.get("asn")
+        if asn is None:
+            logger.warning("ASN message has no asn, skipping")
+            return
+        if self.set_add("agent_whois_ip_asn", asn) is False:
+            logger.info("asn %s was processed before, exiting", asn)
+            return
+        logger.info("processing ASN %s", asn)
+        try:
+            record = asn_whois_data_handler.get_asn_record(asn)
+        except (requests.RequestException, asn_whois_data_handler.RetryableRDAPError):
+            logger.warning("RDAP lookup failed for AS%s", asn)
+            return
+        if record is None:
+            logger.warning("no RDAP record for AS%s", asn)
+            return
+        self.emit(
+            "v3.asset.asn.whois",
+            asn_whois_data_handler.prepare_asn_whois_message_data(asn, record),
+        )
 
     def _emit_whois_message(self, whois_message: dict[str, Any]) -> None:
         """Emit the whois message depending on the type of host address"""
