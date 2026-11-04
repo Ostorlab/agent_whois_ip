@@ -25,7 +25,11 @@ REGISTRIES = {
 }
 
 
-class RetryableRDAPError(Exception):
+class Error(Exception):
+    """Base exception of the ASN whois lookup."""
+
+
+class RetryableRDAPError(Error):
     """RDAP server error or rate limit, worth retrying."""
 
 
@@ -65,20 +69,20 @@ def prepare_asn_whois_message_data(asn: str, record: dict[str, Any]) -> dict[str
         Dict whois message.
     """
     whois_message: dict[str, Any] = {"asn": asn}
-    if record.get("name"):
+    if record.get("name") is not None:
         whois_message["name"] = record["name"]
     org = _registrant_name(record)
     if org is not None:
         whois_message["org"] = org
-    if record.get("country"):
+    if record.get("country") is not None:
         whois_message["country_code"] = record["country"]
     events = {
-        event.get("eventAction"): event.get("eventDate", "")
+        event.get("eventAction"): event.get("eventDate")
         for event in record.get("events", [])
     }
-    if events.get("registration"):
+    if events.get("registration") is not None:
         whois_message["allocated_date"] = events["registration"][:10]
-    if events.get("last changed"):
+    if events.get("last changed") is not None:
         whois_message["updated_date"] = events["last changed"][:10]
     rdap_url = next(
         (
@@ -90,20 +94,20 @@ def prepare_asn_whois_message_data(asn: str, record: dict[str, Any]) -> dict[str
     )
     if rdap_url is not None:
         whois_message["rdap_url"] = rdap_url
-    registry = _registry(rdap_url, record.get("port43"))
-    if registry is not None:
-        whois_message["registry"] = registry
+        registry = _registry(rdap_url)
+        if registry is not None:
+            whois_message["registry"] = registry
     return whois_message
 
 
-def _registry(rdap_url: str | None, port43: str | None) -> str | None:
-    """Registry holding the ASN, from the host of its RDAP record or of its whois server."""
-    rdap_host = urllib.parse.urlparse(rdap_url).hostname if rdap_url else None
-    hosts = [rdap_host or "", port43 or ""]
-    for host in hosts:
-        for domain, registry in REGISTRIES.items():
-            if host == domain or host.endswith(f".{domain}"):
-                return registry
+def _registry(rdap_url: str) -> str | None:
+    """Registry holding the ASN, from the host of its RDAP record."""
+    host = urllib.parse.urlparse(rdap_url).hostname
+    if host is None:
+        return None
+    for domain, registry in REGISTRIES.items():
+        if host == domain or host.endswith(f".{domain}"):
+            return registry
     return None
 
 

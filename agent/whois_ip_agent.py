@@ -16,7 +16,8 @@ from ostorlab.agent.mixins import agent_persist_mixin as persist_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
-from agent import asn_whois_data_handler, ipwhois_data_handler
+from agent import asn_whois_data_handler
+from agent import ipwhois_data_handler
 
 logging.basicConfig(
     format="%(message)s",
@@ -181,8 +182,11 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         logger.info("processing ASN %s", asn)
         try:
             record = asn_whois_data_handler.get_asn_record(asn)
-        except (requests.RequestException, asn_whois_data_handler.RetryableRDAPError):
-            logger.warning("RDAP lookup failed for AS%s", asn)
+        except (
+            requests.RequestException,
+            asn_whois_data_handler.RetryableRDAPError,
+        ) as exc:
+            logger.warning("RDAP lookup failed for AS%s: %s", asn, exc)
             return
         if record is None:
             logger.warning("no RDAP record for AS%s", asn)

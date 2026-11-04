@@ -34,7 +34,7 @@ description: |
   oxo scan run --agent agent/ostorlab/whois_ip domain-name tesla.com
   ```
 
-  For an Autonomous System Number, the agent reads the RDAP autnum record and emits `v3.asset.asn.whois`:
+  For an Autonomous System Number, the agent queries the RDAP autnum record at `https://rdap.org/autnum/<asn>`, which redirects to the registry holding the ASN, and emits `v3.asset.asn.whois`. When no registry has a record for the ASN (404), nothing is emitted:
 
   ```shell
   oxo scan run --agent agent/ostorlab/whois_ip asn 15169
