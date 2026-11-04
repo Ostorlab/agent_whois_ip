@@ -453,3 +453,26 @@ def testAgentWhoisIP_whenRdapLookupFails_logsTheErrorWithoutEmitting(
 
     assert len(agent_mock) == 0
     assert "RDAP answered 503 for AS15169" in caplog.text
+
+
+def testAgentWhoisIP_whenRdapLookupFailedBefore_looksUpTheAsnAgain(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    arin_rdap_record: dict[str, Any],
+) -> None:
+    mocker.patch(
+        "agent.asn_whois_data_handler.get_asn_record",
+        side_effect=[
+            asn_whois_data_handler.RetryableRDAPError("RDAP answered 503"),
+            arin_rdap_record,
+        ],
+    )
+
+    test_agent.process(scan_message_asn)
+    test_agent.process(scan_message_asn)
+
+    assert len(agent_mock) == 1
+    assert agent_mock[0].selector == "v3.asset.asn.whois"

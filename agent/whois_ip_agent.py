@@ -20,6 +20,8 @@ from rich import logging as rich_logging
 from agent import asn_whois_data_handler
 from agent import ipwhois_data_handler
 
+ASN_STORAGE_NAME = "agent_whois_ip_asn"
+
 logging.basicConfig(
     format="%(message)s",
     datefmt="[%X]",
@@ -177,7 +179,8 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         if asn is None:
             logger.warning("ASN message has no asn, skipping")
             return
-        if self.set_add("agent_whois_ip_asn", asn) is False:
+        # The ASN is marked as processed once its lookup succeeded, so an ASN whose lookup failed is tried again.
+        if self.set_is_member(ASN_STORAGE_NAME, asn) is True:
             logger.info("asn %s was processed before, exiting", asn)
             return
         logger.info("processing ASN %s", asn)
@@ -189,6 +192,7 @@ class WhoisIPAgent(agent.Agent, persist_mixin.AgentPersistMixin):
         ) as exc:
             logger.warning("RDAP lookup failed for AS%s: %s", asn, exc)
             return
+        self.set_add(ASN_STORAGE_NAME, asn)
         if record is None:
             logger.warning("no RDAP record for AS%s", asn)
             return
