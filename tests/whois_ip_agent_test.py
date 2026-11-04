@@ -22,6 +22,7 @@ def testAgentWhoisIP_whenIPv4Target_returnsWhoisRecord(
     assert len(agent_mock) == 1
     assert agent_mock[0].selector == "v3.asset.ip.v4.whois"
     assert agent_mock[0].data == {
+        "asn_cidr": "8.8.8.0/24",
         "asn_country_code": "US",
         "asn_date": "2023-12-28",
         "asn_description": "GOOGLE, US",
@@ -65,6 +66,7 @@ def testAgentWhoisIP_whenIPv6Target_returnsWhoisRecord(
     assert len(agent_mock) == 1
     assert agent_mock[0].selector == "v3.asset.ip.v6.whois"
     assert agent_mock[0].data == {
+        "asn_cidr": "2a00:1450::/32",
         "asn_country_code": "IE",
         "asn_number": 15169,
         "asn_date": "2009-10-05",
@@ -147,6 +149,7 @@ def testAgentWhoisIP_whenIPv4WithMaskTarget_returnsWhoisRecord(
     assert len(agent_mock) == 2
     assert agent_mock[0].selector == "v3.asset.ip.v4.whois"
     assert agent_mock[0].data == {
+        "asn_cidr": "8.8.8.0/24",
         "asn_country_code": "US",
         "asn_date": "2023-12-28",
         "asn_description": "GOOGLE, US",
