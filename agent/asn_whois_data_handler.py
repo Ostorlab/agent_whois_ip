@@ -78,7 +78,7 @@ def prepare_asn_whois_message_data(asn: str, record: dict[str, Any]) -> dict[str
         whois_message["country_code"] = record["country"]
     events = {
         event.get("eventAction"): event.get("eventDate")
-        for event in record.get("events", [])
+        for event in _list_field(record, "events")
     }
     if events.get("registration") is not None:
         whois_message["allocated_date"] = events["registration"][:10]
@@ -87,7 +87,7 @@ def prepare_asn_whois_message_data(asn: str, record: dict[str, Any]) -> dict[str
     rdap_url = next(
         (
             link.get("href")
-            for link in record.get("links", [])
+            for link in _list_field(record, "links")
             if link.get("rel") == "self"
         ),
         None,
@@ -113,12 +113,22 @@ def _registry(rdap_url: str) -> str | None:
 
 def _registrant_name(record: dict[str, Any]) -> str | None:
     """Name of the registrant organisation, from its vCard `fn`."""
-    for entity in record.get("entities", []):
-        if "registrant" not in entity.get("roles", []):
+    for entity in _list_field(record, "entities"):
+        if "registrant" not in _list_field(entity, "roles"):
             continue
-        vcard = entity.get("vcardArray", [None, []])
-        for field in vcard[1] if len(vcard) > 1 else []:
+        vcard = _list_field(entity, "vcardArray")
+        if len(vcard) < 2 or vcard[1] is None:
+            continue
+        for field in vcard[1]:
             if len(field) > 3 and field[0] == "fn":
                 name: str = field[3]
                 return name
     return None
+
+
+def _list_field(data: dict[str, Any], key: str) -> list[Any]:
+    """List value of `key`, empty when the key is missing or null."""
+    value: list[Any] | None = data.get(key)
+    if value is None:
+        return []
+    return value

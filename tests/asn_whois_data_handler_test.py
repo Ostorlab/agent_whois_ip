@@ -47,3 +47,16 @@ def testPrepareAsnWhoisMessageData_whenRecordComesFromRegistroBr_setsLacnicRegis
 
     assert data["registry"] == "lacnic"
     assert data["country_code"] == "BR"
+
+
+def testPrepareAsnWhoisMessageData_whenRecordHasNullLists_skipsThem() -> None:
+    record = {
+        "name": "EXAMPLE",
+        "events": None,
+        "links": None,
+        "entities": [{"roles": None}, {"roles": ["registrant"], "vcardArray": None}],
+    }
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("64500", record)
+
+    assert data == {"asn": "64500", "name": "EXAMPLE"}
