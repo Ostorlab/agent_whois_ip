@@ -47,6 +47,14 @@ You can then run the agent with the following command:
 oxo scan run --agent agent/ostorlab/whois_ip domain-name tesla.com
 ```
 
+For an Autonomous System Number, the agent reads the RDAP autnum record at `https://rdap.org/autnum/<asn>`. rdap.org redirects to the registry that holds the ASN, and the agent emits the record as `v3.asset.asn.whois`. If no registry has a record for the ASN (HTTP 404), the agent emits nothing.
+
+Example:
+
+```shell
+oxo scan run --agent agent/ostorlab/whois_ip asn 15169
+```
+
 ### Build directly from the repository
 
 1. To build the whois_ip agent you need to have [oxo](https://pypi.org/project/ostorlab/) installed in your

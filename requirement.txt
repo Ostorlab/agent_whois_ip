@@ -1,3 +1,5 @@
 ostorlab[agent]
 rich
 ipwhois
+requests
+tenacity

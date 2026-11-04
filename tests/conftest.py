@@ -260,3 +260,66 @@ def mock_whois_lookup(mocker: Any) -> None:
     mocker.patch(
         "agent.whois_ip_agent._get_whois_record", side_effect=_mock_get_whois_record
     )
+
+
+@pytest.fixture
+def scan_message_asn() -> message.Message:
+    """Creates a dummy message of ASN asset."""
+    return message.Message.from_data("v3.asset.asn", data={"asn": "15169"})
+
+
+@pytest.fixture
+def arin_rdap_record() -> dict[str, Any]:
+    """RDAP autnum record of AS15169, from ARIN."""
+    return {
+        "objectClassName": "autnum",
+        "handle": "AS15169",
+        "name": "GOOGLE",
+        "port43": "whois.arin.net",
+        "events": [
+            {"eventAction": "last changed", "eventDate": "2012-02-24T09:44:34-05:00"},
+            {"eventAction": "registration", "eventDate": "2000-03-30T00:00:00-05:00"},
+        ],
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://rdap.arin.net/registry/autnum/15169",
+            }
+        ],
+        "entities": [
+            {
+                "roles": ["technical"],
+                "vcardArray": ["vcard", [["fn", {}, "text", "Google LLC"]]],
+            },
+            {
+                "roles": ["registrant"],
+                "vcardArray": [
+                    "vcard",
+                    [["version", {}, "text", "4.0"], ["fn", {}, "text", "Google LLC"]],
+                ],
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def apnic_rdap_record() -> dict[str, Any]:
+    """RDAP autnum record of AS4134, from APNIC."""
+    return {
+        "objectClassName": "autnum",
+        "handle": "AS4134",
+        "name": "CHINANET-BACKBONE",
+        "country": "CN",
+        "port43": "whois.apnic.net",
+        "events": [
+            {"eventAction": "registration", "eventDate": "2008-09-04T06:40:34Z"},
+            {"eventAction": "last changed", "eventDate": "2021-06-15T08:05:05Z"},
+        ],
+        "links": [{"rel": "self", "href": "https://rdap.apnic.net/autnum/4134"}],
+        "entities": [
+            {
+                "roles": ["abuse"],
+                "vcardArray": ["vcard", [["fn", {}, "text", "IRT-CHINANET-CN"]]],
+            }
+        ],
+    }

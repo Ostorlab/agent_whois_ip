@@ -1,12 +1,15 @@
 """Unittests for WhoisIP agent."""
 
+from typing import Any
 from unittest import mock
 
 import ipwhois
 import pytest
+import tenacity
 from ostorlab.agent.message import message
 from pytest_mock import plugin
 
+from agent import asn_whois_data_handler
 from agent import whois_ip_agent
 
 
@@ -369,3 +372,107 @@ def testWhoisIp_whenASNParseErrorOccure_logWithoutCrash(
 
     assert len(agent_mock) == 0
     assert "ASN parse error for IP" in caplog.text
+
+
+def testAgentWhoisIP_whenAsnTarget_emitsAsnWhoisRecord(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    arin_rdap_record: dict[str, Any],
+) -> None:
+    mocker.patch(
+        "agent.asn_whois_data_handler.get_asn_record", return_value=arin_rdap_record
+    )
+
+    test_agent.process(scan_message_asn)
+
+    assert len(agent_mock) == 1
+    assert agent_mock[0].selector == "v3.asset.asn.whois"
+    assert agent_mock[0].data == {
+        "asn": "15169",
+        "name": "GOOGLE",
+        "org": "Google LLC",
+        "registry": "arin",
+        "allocated_date": "2000-03-30",
+        "updated_date": "2012-02-24",
+        "rdap_url": "https://rdap.arin.net/registry/autnum/15169",
+    }
+
+
+def testAgentWhoisIP_whenSameAsnTwice_emitsOnce(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    arin_rdap_record: dict[str, Any],
+) -> None:
+    lookup = mocker.patch(
+        "agent.asn_whois_data_handler.get_asn_record", return_value=arin_rdap_record
+    )
+
+    test_agent.process(scan_message_asn)
+    test_agent.process(scan_message_asn)
+
+    assert len(agent_mock) == 1
+    assert lookup.call_count == 1
+
+
+def testAgentWhoisIP_whenAsnHasNoRdapRecord_emitsNothing(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    mocker.patch("agent.asn_whois_data_handler.get_asn_record", return_value=None)
+
+    test_agent.process(scan_message_asn)
+
+    assert len(agent_mock) == 0
+
+
+def testAgentWhoisIP_whenRdapLookupFails_logsTheErrorWithoutEmitting(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mocker.patch("requests.get", return_value=mock.Mock(status_code=503))
+    mocker.patch.object(
+        asn_whois_data_handler.get_asn_record.retry,  # type: ignore[attr-defined]
+        "wait",
+        tenacity.wait_none(),
+    )
+
+    test_agent.process(scan_message_asn)
+
+    assert len(agent_mock) == 0
+    assert "RDAP answered 503 for AS15169" in caplog.text
+
+
+def testAgentWhoisIP_whenRdapLookupFailedBefore_looksUpTheAsnAgain(
+    scan_message_asn: message.Message,
+    test_agent: whois_ip_agent.WhoisIPAgent,
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+    arin_rdap_record: dict[str, Any],
+) -> None:
+    mocker.patch(
+        "agent.asn_whois_data_handler.get_asn_record",
+        side_effect=[
+            asn_whois_data_handler.RetryableRDAPError("RDAP answered 503"),
+            arin_rdap_record,
+        ],
+    )
+
+    test_agent.process(scan_message_asn)
+    test_agent.process(scan_message_asn)
+
+    assert len(agent_mock) == 1
+    assert agent_mock[0].selector == "v3.asset.asn.whois"
