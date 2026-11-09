@@ -3,3 +3,4 @@ rich
 ipwhois
 requests
 tenacity
+pycountry
