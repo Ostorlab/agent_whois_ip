@@ -185,6 +185,7 @@ def mock_whois_lookup(mocker: Any) -> None:
                 "asn_country_code": "IE",
                 "asn": "15169",
                 "asn_date": "2009-10-05",
+                "asn_cidr": "2a00:1450::/32",
                 "asn_description": "GOOGLE, US",
                 "asn_registry": "ripencc",
                 "objects": {
@@ -232,6 +233,7 @@ def mock_whois_lookup(mocker: Any) -> None:
             return {
                 "asn_country_code": "US",
                 "asn_date": "2023-12-28",
+                "asn_cidr": "8.8.8.0/24",
                 "asn_description": "GOOGLE, US",
                 "asn": "15169",
                 "asn_registry": "arin",

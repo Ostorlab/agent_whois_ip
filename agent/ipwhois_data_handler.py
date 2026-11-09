@@ -56,6 +56,8 @@ def prepare_whois_message_data(
         whois_message["asn_date"] = record.get("asn_date")
     if record.get("asn_description") is not None:
         whois_message["asn_description"] = record.get("asn_description")
+    if record.get("asn_cidr") is not None:
+        whois_message["asn_cidr"] = record.get("asn_cidr")
     return whois_message
 
 
