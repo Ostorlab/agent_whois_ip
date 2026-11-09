@@ -25,6 +25,9 @@ REGISTRIES = {
     "afrinic.net": "afrinic",
 }
 
+# vCard `kind` of an organisation (RFC 6350), the other kinds are individual, group and location.
+VCARD_KIND_ORGANISATION = "org"
+
 
 class Error(Exception):
     """Base exception of the ASN whois lookup."""
@@ -116,8 +119,16 @@ def _registry(rdap_url: str) -> str | None:
 
 
 def _registrant_name(record: dict[str, Any]) -> str | None:
-    """Name of the registrant organisation, from its vCard `fn`."""
-    for field in _registrant_vcard(record):
+    """Name of the registrant organisation, from its vCard `fn`.
+
+    The name is only returned when the vCard `kind` is `org`: the registrant can be a person,
+    and the name of a person is personal data that the message must not carry.
+    """
+    vcard = _registrant_vcard(record)
+    kinds = [field[3] for field in vcard if len(field) > 3 and field[0] == "kind"]
+    if VCARD_KIND_ORGANISATION not in kinds:
+        return None
+    for field in vcard:
         if len(field) > 3 and field[0] == "fn":
             name: str = field[3]
             return name

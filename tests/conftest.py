@@ -297,7 +297,11 @@ def arin_rdap_record() -> dict[str, Any]:
                 "roles": ["registrant"],
                 "vcardArray": [
                     "vcard",
-                    [["version", {}, "text", "4.0"], ["fn", {}, "text", "Google LLC"]],
+                    [
+                        ["version", {}, "text", "4.0"],
+                        ["fn", {}, "text", "Google LLC"],
+                        ["kind", {}, "text", "org"],
+                    ],
                 ],
             },
         ],

@@ -124,3 +124,23 @@ def testPrepareAsnWhoisMessageData_whenRegistrantCountryIsUnknown_skipsCountryCo
     data = asn_whois_data_handler.prepare_asn_whois_message_data("64500", record)
 
     assert "country_code" not in data
+
+
+def testPrepareAsnWhoisMessageData_whenRegistrantIsOrganisation_setsOrg() -> None:
+    record = _registrant_record(
+        "Google LLC",
+        "org",
+        "1600 Amphitheatre Parkway\nMountain View\nCA\n94043\nUnited States",
+    )
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("15169", record)
+
+    assert data["org"] == "Google LLC"
+
+
+def testPrepareAsnWhoisMessageData_whenRegistrantIsPerson_skipsOrg() -> None:
+    record = _registrant_record("John Smith", "individual", "Somewhere\nUnited States")
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("64500", record)
+
+    assert "org" not in data
