@@ -60,3 +60,67 @@ def testPrepareAsnWhoisMessageData_whenRecordHasNullLists_skipsThem() -> None:
     data = asn_whois_data_handler.prepare_asn_whois_message_data("64500", record)
 
     assert data == {"asn": "64500", "name": "EXAMPLE"}
+
+
+def _registrant_record(fn: str, kind: str, address_label: str) -> dict[str, Any]:
+    """RDAP autnum record without `country`, like ARIN and RIPE ones."""
+    return {
+        "name": "EXAMPLE",
+        "entities": [
+            {
+                "roles": ["registrant"],
+                "vcardArray": [
+                    "vcard",
+                    [
+                        ["version", {}, "text", "4.0"],
+                        ["fn", {}, "text", fn],
+                        [
+                            "adr",
+                            {"label": address_label},
+                            "text",
+                            ["", "", "", "", "", "", ""],
+                        ],
+                        ["kind", {}, "text", kind],
+                    ],
+                ],
+            }
+        ],
+    }
+
+
+def testPrepareAsnWhoisMessageData_whenRecordHasNoCountry_setsCountryCodeFromRegistrantAddress() -> (
+    None
+):
+    record = _registrant_record(
+        "Google LLC",
+        "org",
+        "1600 Amphitheatre Parkway\nMountain View\nCA\n94043\nUnited States",
+    )
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("15169", record)
+
+    assert data["country_code"] == "US"
+
+
+def testPrepareAsnWhoisMessageData_whenRegistrantCountryIsUppercase_setsCountryCode() -> (
+    None
+):
+    record = _registrant_record(
+        "Reseaux IP Europeens Network Coordination Centre (RIPE NCC)",
+        "org",
+        "Stationsplein 11\n1012 AB\nAmsterdam\nNETHERLANDS",
+    )
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("3333", record)
+
+    assert data["country_code"] == "NL"
+
+
+def testPrepareAsnWhoisMessageData_whenRegistrantCountryIsUnknown_skipsCountryCode() -> (
+    None
+):
+    record = _registrant_record("Example Org", "org", "Somewhere\nAtlantis")
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("64500", record)
+
+    assert "country_code" not in data

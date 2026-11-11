@@ -4,6 +4,7 @@ import logging
 import urllib.parse
 from typing import Any
 
+import pycountry
 import requests
 import tenacity
 
@@ -74,8 +75,11 @@ def prepare_asn_whois_message_data(asn: str, record: dict[str, Any]) -> dict[str
     org = _registrant_name(record)
     if org is not None:
         whois_message["org"] = org
-    if record.get("country") is not None:
-        whois_message["country_code"] = record["country"]
+    country_code = record.get("country")
+    if country_code is None:
+        country_code = _registrant_country_code(record)
+    if country_code is not None:
+        whois_message["country_code"] = country_code
     events = {
         event.get("eventAction"): event.get("eventDate")
         for event in _list_field(record, "events")
@@ -113,17 +117,47 @@ def _registry(rdap_url: str) -> str | None:
 
 def _registrant_name(record: dict[str, Any]) -> str | None:
     """Name of the registrant organisation, from its vCard `fn`."""
+    for field in _registrant_vcard(record):
+        if len(field) > 3 and field[0] == "fn":
+            name: str = field[3]
+            return name
+    return None
+
+
+def _registrant_country_code(record: dict[str, Any]) -> str | None:
+    """Country code of the registrant, from the last line of its vCard address.
+
+    ARIN and RIPE records have no `country`: the country is only written at the end of the
+    registrant address label, e.g. `United States` or `NETHERLANDS`.
+    """
+    for field in _registrant_vcard(record):
+        if len(field) < 2 or field[0] != "adr" or isinstance(field[1], dict) is False:
+            continue
+        label = field[1].get("label")
+        if isinstance(label, str) is False or label.strip() == "":
+            continue
+        country_name = label.strip().splitlines()[-1].strip()
+        try:
+            country: Any = pycountry.countries.lookup(country_name)
+        except LookupError:
+            logger.info("unknown registrant country %s", country_name)
+            return None
+        country_code: str = country.alpha_2
+        return country_code
+    return None
+
+
+def _registrant_vcard(record: dict[str, Any]) -> list[Any]:
+    """vCard properties of the registrant entity, empty when the record has none."""
     for entity in _list_field(record, "entities"):
         if "registrant" not in _list_field(entity, "roles"):
             continue
         vcard = _list_field(entity, "vcardArray")
         if len(vcard) < 2 or vcard[1] is None:
             continue
-        for field in vcard[1]:
-            if len(field) > 3 and field[0] == "fn":
-                name: str = field[3]
-                return name
-    return None
+        properties: list[Any] = vcard[1]
+        return properties
+    return []
 
 
 def _list_field(data: dict[str, Any], key: str) -> list[Any]:
