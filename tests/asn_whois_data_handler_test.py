@@ -124,3 +124,58 @@ def testPrepareAsnWhoisMessageData_whenRegistrantCountryIsUnknown_skipsCountryCo
     data = asn_whois_data_handler.prepare_asn_whois_message_data("64500", record)
 
     assert "country_code" not in data
+
+
+def _maintainer_entity(handle: str) -> dict[str, Any]:
+    """RIPE maintainer account listed as a registrant, without an address."""
+    return {
+        "roles": ["registrant"],
+        "vcardArray": [
+            "vcard",
+            [
+                ["version", {}, "text", "4.0"],
+                ["fn", {}, "text", handle],
+                ["kind", {}, "text", "individual"],
+            ],
+        ],
+    }
+
+
+def testPrepareAsnWhoisMessageData_whenMaintainerIsListedBeforeHolder_setsHolderOrgAndCountry() -> (
+    None
+):
+    record = _registrant_record(
+        "Example Org", "org", "Stationsplein 11\n1012 AB\nAmsterdam\nNETHERLANDS"
+    )
+    record["entities"].insert(0, _maintainer_entity("EXAMPLE-MNT"))
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("64500", record)
+
+    assert data["org"] == "Example Org"
+    assert data["country_code"] == "NL"
+
+
+def testPrepareAsnWhoisMessageData_whenNoRegistrantHasAddress_setsFirstRegistrantOrg() -> (
+    None
+):
+    record = {
+        "name": "EXAMPLE",
+        "entities": [
+            {
+                "roles": ["registrant"],
+                "vcardArray": [
+                    "vcard",
+                    [
+                        ["version", {}, "text", "4.0"],
+                        ["fn", {}, "text", "Example Org"],
+                        ["kind", {}, "text", "org"],
+                    ],
+                ],
+            }
+        ],
+    }
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("64500", record)
+
+    assert data["org"] == "Example Org"
+    assert "country_code" not in data

@@ -148,16 +148,26 @@ def _registrant_country_code(record: dict[str, Any]) -> str | None:
 
 
 def _registrant_vcard(record: dict[str, Any]) -> list[Any]:
-    """vCard properties of the registrant entity, empty when the record has none."""
+    """vCard properties of the registrant holding the ASN, empty when the record has none.
+
+    RIPE also lists the maintainer accounts of the record as registrants, often before the
+    holder, e.g. `COGENT-HM-MNT`. They have no address while the holder has one, so the first
+    registrant with an address is picked, and the first registrant when none has one.
+    """
+    registrants: list[list[Any]] = []
     for entity in _list_field(record, "entities"):
         if "registrant" not in _list_field(entity, "roles"):
             continue
         vcard = _list_field(entity, "vcardArray")
         if len(vcard) < 2 or vcard[1] is None:
             continue
-        properties: list[Any] = vcard[1]
-        return properties
-    return []
+        registrants.append(vcard[1])
+    for properties in registrants:
+        if any(len(field) > 0 and field[0] == "adr" for field in properties):
+            return properties
+    if len(registrants) == 0:
+        return []
+    return registrants[0]
 
 
 def _list_field(data: dict[str, Any], key: str) -> list[Any]:
