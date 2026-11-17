@@ -116,6 +116,20 @@ def testPrepareAsnWhoisMessageData_whenRegistrantCountryIsUppercase_setsCountryC
     assert data["country_code"] == "NL"
 
 
+def testPrepareAsnWhoisMessageData_whenRegistrantCountryIsLegacyName_setsCountryCode() -> (
+    None
+):
+    record = _registrant_record(
+        "Example Turkish Org",
+        "org",
+        "Example Street 1\n34000\nIstanbul\nTURKEY",
+    )
+
+    data = asn_whois_data_handler.prepare_asn_whois_message_data("215900", record)
+
+    assert data["country_code"] == "TR"
+
+
 def testPrepareAsnWhoisMessageData_whenRegistrantCountryIsUnknown_skipsCountryCode() -> (
     None
 ):
