@@ -24,6 +24,14 @@ REGISTRIES = {
     "registro.br": "lacnic",
     "afrinic.net": "afrinic",
 }
+# Former country names still written in registry records that pycountry no longer resolves,
+# e.g. RIPE writes `TURKEY` while pycountry names it `Türkiye`.
+LEGACY_COUNTRY_CODES = {
+    "TURKEY": "TR",
+    "SWAZILAND": "SZ",
+    "MACEDONIA": "MK",
+    "CAPE VERDE": "CV",
+}
 
 
 class Error(Exception):
@@ -140,6 +148,9 @@ def _registrant_country_code(record: dict[str, Any]) -> str | None:
         try:
             country: Any = pycountry.countries.lookup(country_name)
         except LookupError:
+            legacy_country_code = LEGACY_COUNTRY_CODES.get(country_name.upper())
+            if legacy_country_code is not None:
+                return legacy_country_code
             logger.info("unknown registrant country %s", country_name)
             return None
         country_code: str = country.alpha_2
